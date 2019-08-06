@@ -15,34 +15,41 @@ class Book():
                     if line == '--':
                         self.holdData.append( auxHold )
                         auxHold = []
-                # appData( 'prueba.prueba', self.holdData, 'Esto es lo que se debe de hacer' )
-                # finData( 'prueba.prueba', self.holdData )
+                self.finData( 'prueba.prueba' )
+                # self.appData( 'prueba.prueba', 'Esto es lo que se debe de hacer' )
+                # print( self.holdData )
         except IOError:     # In case the file does not exist
             with open( fileName, 'w' ) as fbuf:
                 fbuf.write( 'prueba.prueba' + '\n' )
                 fbuf.write( '--' )
 
-def checkEx( nameFile, holdData ):
-    # Error is raised in case the file does not exist in file
-    if nameFile not in holdData:
-        raise ValueError( 'ERROR: The file does not exist' )
-    else:
-        pass
+    def checkEx( self, nameFile ):
+        # Error raised in case the file does not exist in fileName
+        auxCounter = 0
+        for group in self.holdData:
+            if nameFile in group:
+                auxCounter += 1
+        if auxCounter == 0:
+            raise ValueError( 'ERROR: The file does not exist in .book' )
+        else:
+            pass
 
-def finData( nameFile, holdData ):
-    # Find the data to print it out in the command line
-    for group in holdData:
-        if nameFile in group:
-            for elem in group:
-                print( elem ) if elem !=  '--' else None
+    def finData( self, nameFile ):
+        # Find the data to print the content out in the command line
+        self.checkEx( nameFile )    # Check existence of the file
+        for group in self.holdData:
+            if nameFile in group:
+                for elem in group:
+                    print( elem ) if elem != '--' else None
 
-def appData( nameFile, holdData, comment ):
-    # Append data to the last position in the group
-    for i in range( len( holdData ) ):
-        if holdData[i][0] == nameFile:
-            holdData[i].pop( -1 )
-            holdData[i].append( comment )
-            holdData[i].append( '--' )
+    def appData( self, nameFile, comment ):
+        # Append data to the last position in the group
+        self.checkEx( nameFile )    # Check existence of the file
+        for i in range( len( self.holdData ) ):
+            if self.holdData[i][0] == nameFile:
+                self.holdData[i].pop( -1 )
+                self.holdData[i].append( comment )
+                self.holdData[i].append( '--' )
 
 
 # holdData = []
