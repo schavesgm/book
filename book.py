@@ -1,5 +1,21 @@
+import argparse
+import sys
 
-class Book():
+def getOptions( args = sys.argv[2:] ):
+    parser = argparse.ArgumentParser( description = "Parses commands." )
+    parser.add_argument( "-i", "--input", help = "Input file." )
+    parser.add_argument( "-a", "--append", help = "Message to be appended to file." )
+
+    options = parser.parse_args( args )
+    return options
+
+
+class TermColors:
+    BOLD = '\033[1m'
+    RED = '\033[91m'
+    ENDL = '\033[0m'
+
+class Book:
 
     def __init__( self, fileName ):
         self.holdData = []
@@ -15,12 +31,6 @@ class Book():
                     if line == '--':
                         self.holdData.append( auxHold )
                         auxHold = []
-                self.finData( 'prueba.prueba' )
-                self.appData( 'prueba.prueba', 'Esto es lo que se debe de hacer' )
-                self.appData( 'prueba.prueba', 'Y lo hacemos a escondidas' )
-                self.finData( 'prueba.prueba' )
-                self.flsData( )
-                # print( self.holdData )
         except IOError:     # In case the file does not exist
             with open( fileName, 'w' ) as fbuf:
                 fbuf.write( 'prueba.prueba' + '\n' )
@@ -43,7 +53,10 @@ class Book():
         for group in self.holdData:
             if nameFile in group:
                 for elem in group:
-                    print( elem ) if elem != '--' else None
+                    print( TermColors.RED + TermColors.BOLD + elem + TermColors.ENDL ) \
+                            if elem == group[0] else None
+                    print( TermColors.BOLD + elem + TermColors.ENDL ) \
+                            if elem != '--' and elem != group[0] else None
 
     def appData( self, nameFile, comment ):
         # Append data to the last position in the group
@@ -54,38 +67,47 @@ class Book():
                 self.holdData[i].append( comment )
                 self.holdData[i].append( '--' )
 
+    def elmData( self, nameFile, line ):
+        # Eliminate data to a group depending of type of argument
+        self.checkEx( nameFile )    # Check existence of the file
+        try:
+            line = int( line )
+            for i in range( len( self.holdData ) ):
+                if nameFile in self.holdData[i]:
+                    self.holdData[i].pop( line + 1 )
+        except ValueError:
+            for i in range( len( self.holdData ) ):
+                if nameFile in self.holdData[i]:
+                    auxHold = []
+                    for stat in self.holdData[i]:
+                        if line not in stat:
+                            auxHold.append( stat )
+                    self.holdData[i] = auxHold
+                    auxHold = []    # Just in case there are more matches
+
     def flsData( self ):
         with open( fileName, 'w' ) as fbuf:
             for group in self.holdData:
                 for elem in group:
                     fbuf.write( elem + '\n' )
-# holdData = []
-# try:                # In case the file is already created
-#     with open( fileName ) as fbuf:
-#         contents = fbuf.readlines()
-#         contents = [ x.strip() for x in contents ]
-#         # Hold the data into holdData
-#         auxHold = []
-#         for line in contents:
-#             auxHold.append( line )
-#             if line == '--':
-#                 holdData.append( auxHold )
-#                 auxHold = []
-#         appData( 'prueba.prueba', holdData, 'Esto es lo que se debe de hacer' )
-#         finData( 'prueba.prueba', holdData )
-#
-#
-# except IOError:     # In case the file does not exist
-#     with open( fileName, 'w' ) as fbuf:
-#         fbuf.write( 'prueba.prueba' + '\n' )
-#         fbuf.write( '--' )
 
 if __name__ == '__main__':
 
     # File to save the data
-    fileName = '.book'
+    fileToSave = '.book'
+
+    # Generate the file name to be used
+    if getOptions().input is not None:
+        nameFile = getOptions().input
+    else:
+        nameFile = input( "Enter name of file: " )
 
     # Create a Book object that will manage the IO
-    book = Book( fileName )
+    book = Book( fileToSave )
+
+    # Manage the IO with external commands
+    # book.finData( nameFile )
+
+    # Test the parser
 
 
