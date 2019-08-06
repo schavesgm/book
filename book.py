@@ -16,7 +16,10 @@ class Book():
                         self.holdData.append( auxHold )
                         auxHold = []
                 self.finData( 'prueba.prueba' )
-                # self.appData( 'prueba.prueba', 'Esto es lo que se debe de hacer' )
+                self.appData( 'prueba.prueba', 'Esto es lo que se debe de hacer' )
+                self.appData( 'prueba.prueba', 'Y lo hacemos a escondidas' )
+                self.finData( 'prueba.prueba' )
+                self.flsData( )
                 # print( self.holdData )
         except IOError:     # In case the file does not exist
             with open( fileName, 'w' ) as fbuf:
@@ -51,7 +54,11 @@ class Book():
                 self.holdData[i].append( comment )
                 self.holdData[i].append( '--' )
 
-
+    def flsData( self ):
+        with open( fileName, 'w' ) as fbuf:
+            for group in self.holdData:
+                for elem in group:
+                    fbuf.write( elem + '\n' )
 # holdData = []
 # try:                # In case the file is already created
 #     with open( fileName ) as fbuf:
