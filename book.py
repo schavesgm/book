@@ -1,5 +1,6 @@
 import argparse
 import sys
+from datetime import datetime
 
 def getOptions( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
@@ -9,27 +10,30 @@ def getOptions( args = sys.argv[1:] ):
     msgDel = 'Delete the nth comment of a file or the lines containing string.'
     msgRem = 'Remove all the contents related to a file'
     msgAll = 'Show all the files registered'
+    msgDat = 'Add date of creation at the beginning of the file'
 
     parser.add_argument( "-i", "--input", help = msgInp )
     parser.add_argument( "-a", "--append", help = msgApp )
     parser.add_argument( "-d", "--delete", help = msgDel )
     parser.add_argument( '-r', '--remove', help = msgRem )
     parser.add_argument( '-S', '--show_all', help = msgAll, action = 'store_true' )
+    parser.add_argument( '-t', '--time', help = msgDat, action = 'store_true' )
 
     parser.set_defaults( show_all = False )
+    parser.set_defaults( time = False )
 
     options = parser.parse_args( args )
     return options
-
 
 class TermColors:
     BOLD = '\033[1m'
     RED = '\033[91m'
     ENDL = '\033[0m'
+    UNDL = '\033[4m'
 
 class Book:
 
-    def __init__( self, fileToSave, nameFile ):
+    def __init__( self, fileToSave, nameFile = 'NULL' ):
 
         self.holdData = []
         self.fileToSave = fileToSave
@@ -85,14 +89,22 @@ class Book:
                         if elem != '--' and elem != group[0] else None
 
 
-    def appData( self, comment ):
+    def appData( self, comment, date = None ):
         # Append data to the last position in the group
         self.checkEx()    # Check existence of the file
-        for i in range( len( self.holdData ) ):
-            if self.holdData[i][0] == self.nameFile:
-                self.holdData[i].pop( -1 )
-                self.holdData[i].append( comment )
-                self.holdData[i].append( '--' )
+        if date is None:
+            for i in range( len( self.holdData ) ):
+                if self.holdData[i][0] == self.nameFile:
+                    self.holdData[i].pop( -1 )
+                    self.holdData[i].append( comment )
+                    self.holdData[i].append( '--' )
+        else:
+            for i in range( len( self.holdData ) ):
+                if self.holdData[i][0] == self.nameFile:
+                    self.holdData[i].pop( -1 )
+                    self.holdData[i].append( date + ':\t' + comment )
+                    self.holdData[i].append( '--' )
+
 
     def elmData( self, line ):
         # Eliminate data to a group depending of type of argument
@@ -130,31 +142,39 @@ if __name__ == '__main__':
     # File to save the data
     fileToSave = '.book'
 
-    # Generate the file name to be used
-    if getOptions().input is not None:
-        nameFile = getOptions().input
-    else:
-        nameFile = input( "Enter name of file: " )
-
-    # Create a Book object that will manage the IO
-    book = Book( fileToSave, nameFile )
-
-    # Append something to the file
-    if getOptions().append is not None:
-        book.appData( getOptions().append )
-
-    if getOptions().delete is not None:
-        book.elmData( getOptions().delete )
-
-    if getOptions().remove is not None:
-        book.delData( )
-
     if getOptions().show_all:
+        book = Book( fileToSave )
         book.shwData()
+    else:
+        # Generate the file name to be used
+        if getOptions().input is not None:
+            nameFile = getOptions().input
+        else:
+            nameFile = input( "Enter name of file: " )
 
-    # Print the data and flush it out
-    # book.finData()
-    book.flsData()
+        # Create a Book object that will manage the IO
+        book = Book( fileToSave, nameFile )
+
+        # Append something to the file
+        if getOptions().append is not None:
+            if getOptions().time:
+                date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
+                book.appData( getOptions().append, date )
+            else:
+                book.appData( getOptions().append )
+
+        if getOptions().delete is not None:
+            book.elmData( getOptions().delete )
+
+        if getOptions().remove is not None:
+            book.delData( )
+
+        if getOptions().show_all:
+            book.shwData()
+
+        # Print the data and flush it out
+        book.finData()
+        book.flsData()
 
 
 
