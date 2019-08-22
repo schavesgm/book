@@ -6,6 +6,7 @@ def getOptions( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
 
     msgInp = 'Input file.'
+    msgAdd = 'File to be added.'
     msgApp = 'Message to be appended to the file.'
     msgDel = 'Delete the nth comment of a file or the lines containing string.'
     msgRem = 'Remove all the contents related to a file'
@@ -13,12 +14,14 @@ def getOptions( args = sys.argv[1:] ):
     msgDat = 'Add date of creation at the beginning of the file'
 
     parser.add_argument( "-i", "--input", help = msgInp )
+    parser.add_argument( "-A", "--add", help = msgAdd )
     parser.add_argument( "-a", "--append", help = msgApp )
     parser.add_argument( "-d", "--delete", help = msgDel )
-    parser.add_argument( '-r', '--remove', help = msgRem )
+    parser.add_argument( '-r', '--remove', help = msgRem, action = 'store_true')
     parser.add_argument( '-S', '--show_all', help = msgAll, action = 'store_true' )
     parser.add_argument( '-t', '--time', help = msgDat, action = 'store_true' )
 
+    parser.set_defaults( remove =  False )
     parser.set_defaults( show_all = False )
     parser.set_defaults( time = False )
 
@@ -52,7 +55,7 @@ class Book:
                         auxHold = []
         except IOError:     # In case the file does not exist
             with open( fileToSave, 'w' ) as fbuf:
-                fbuf.write( 'prueba.prueba' + '\n' )
+                fbuf.write( '%s\n' %( nameFile ) )
                 fbuf.write( '--' )
 
     def checkEx( self ):
@@ -88,6 +91,12 @@ class Book:
                 print( TermColors.BOLD + elem + TermColors.ENDL ) \
                         if elem != '--' and elem != group[0] else None
 
+    def addFile( self ):
+        # Add a new file
+        try:
+            self.checkEx()
+        except ValueError:
+            self.holdData.append( [self.nameFile, '--'] )
 
     def appData( self, comment, date = None ):
         # Append data to the last position in the group
@@ -146,34 +155,45 @@ if __name__ == '__main__':
         book = Book( fileToSave )
         book.shwData()
     else:
-        # Generate the file name to be used
-        if getOptions().input is not None:
-            nameFile = getOptions().input
+
+        # Add a file if it does not exist
+        if getOptions().add is not None:
+            nameFile = getOptions().add
+            book = Book( fileToSave, nameFile )
+            book.addFile()
+
         else:
-            nameFile = input( "Enter name of file: " )
-
-        # Create a Book object that will manage the IO
-        book = Book( fileToSave, nameFile )
-
-        # Append something to the file
-        if getOptions().append is not None:
-            if getOptions().time:
-                date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
-                book.appData( getOptions().append, date )
+            # Generate the file name to be used
+            if getOptions().input is not None:
+                nameFile = getOptions().input
             else:
-                book.appData( getOptions().append )
+                nameFile = input( "Enter name of file: " )
 
-        if getOptions().delete is not None:
-            book.elmData( getOptions().delete )
+            # Create a Book object that will manage the IO
+            book = Book( fileToSave, nameFile )
 
-        if getOptions().remove is not None:
-            book.delData( )
+            # Append something to the file
+            if getOptions().append is not None:
+                if getOptions().time:
+                    date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
+                    book.appData( getOptions().append, date )
+                else:
+                    book.appData( getOptions().append )
 
-        if getOptions().show_all:
-            book.shwData()
+            if getOptions().delete is not None:
+                book.elmData( getOptions().delete )
 
-        # Print the data and flush it out
-        book.finData()
+
+            if getOptions().show_all:
+                book.shwData()
+
+            # Show the data contained in the file
+            book.finData()
+
+            if getOptions().remove:
+                book.delFile()
+
+        # Flush everything out
         book.flsData()
 
 
