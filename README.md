@@ -89,6 +89,10 @@ and copy the file to the \bin folder
 sudo cp book /bin
 ```
 
+Now you can use **book** as a command in your terminal.
+
+--
+Sergio Chaves
 
 
 
