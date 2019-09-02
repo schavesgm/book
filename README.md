@@ -39,7 +39,12 @@ the file to **book** and then append a comment to it,
 
 ![Add Pic](./Images/AddPic.png)
 
+We can use the command **book -S** to show all the comments and
+files contained in our folder. Let's try appending two more comments
+to the other files. To do so, we need to add files using the tag **-A**
+and then append comments to them using **-i nameFile -a Comment**.
 
+![More Pic](./Images/MorePic.png)
 
 
 
