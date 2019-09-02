@@ -4,7 +4,7 @@
 It allows you to add notes to different files in one directory.
 
 Imagine you had a folder full of files, maybe because you need to
-analyse different data using multiple scripts. **book*** allows you
+analyse different data using multiple scripts. **book** allows you
 to add comments to those files from the command line by parsing
 some tags. You can fully manage your files, from appending comments
 to adding new files and removing lines of comments.
@@ -25,10 +25,10 @@ by itself to see a beautiful plot.
 
 We have to do a lot of stuff... Me, as a human, I tend to forget
 about things, even the notebook. That's why I decided to create
-**book***. Now you are able to add those notes to the files in the same
+**book**. Now you are able to add those notes to the files in the same
 terminal you use to work. Let's see how it works.
 
-First of all, we can call **book*** to provide us some hints about
+First of all, we can call **book** to provide us some hints about
 how to use it...
 
 ![Help Pic](./Images/HelpPic.png)
@@ -91,7 +91,8 @@ sudo cp book /bin
 
 Now you can use **book** as a command in your terminal.
 
---
+# --
+
 Sergio Chaves
 
 
