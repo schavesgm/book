@@ -65,6 +65,30 @@ to a file. Let's delete everything related to the file *PlotData.dat*.
 
 ![Rem Pic](./Images/RemPic.png)
 
+As we can see, the file has been removed.
+
+# Installation
+
+**NOTE:** You do need a python 3 interpreter installed in your machine.
+
+In order to install **book**, clone the repository,
+
+```
+git clone git@github.com:schavesgm/book.git
+```
+
+grant executable permissions to **book** by using
+
+```
+sudo chmod +x book
+```
+
+and copy the file to the \bin folder
+
+```
+sudo cp book /bin
+```
+
 
 
 
