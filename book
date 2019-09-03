@@ -10,6 +10,7 @@ def getOptions( args = sys.argv[1:] ):
     msgInp = 'Input file.'
     msgAdd = 'File to be added.'
     msgApp = 'Message to be appended to the file.'
+    msgMod = 'Modify the nth comment of a file.'
     msgDel = 'Delete the nth comment of a file or the lines containing string.'
     msgRem = 'Remove all the contents related to a file'
     msgAll = 'Show all the files registered'
@@ -18,10 +19,11 @@ def getOptions( args = sys.argv[1:] ):
     parser.add_argument( "-i", "--input", help = msgInp )
     parser.add_argument( "-A", "--add", help = msgAdd )
     parser.add_argument( "-a", "--append", help = msgApp )
+    parser.add_argument( "-m", "--modify", help = msgMod )
     parser.add_argument( "-d", "--delete", help = msgDel )
-    parser.add_argument( '-r', '--remove', help = msgRem, action = 'store_true')
-    parser.add_argument( '-S', '--show_all', help = msgAll, action = 'store_true' )
-    parser.add_argument( '-t', '--time', help = msgDat, action = 'store_true' )
+    parser.add_argument( "-r", "--remove", help = msgRem, action = 'store_true')
+    parser.add_argument( "-S", "--show_all", help = msgAll, action = 'store_true' )
+    parser.add_argument( "-t", "--time", help = msgDat, action = 'store_true' )
 
     parser.set_defaults( remove =  False )
     parser.set_defaults( show_all = False )
@@ -32,7 +34,8 @@ def getOptions( args = sys.argv[1:] ):
 
 class TermColors:
     BOLD = '\033[1m'
-    RED = '\033[91m'
+    RED  = '\033[91m'
+    WARN = '\033[93m'
     ENDL = '\033[0m'
     UNDL = '\033[4m'
 
@@ -116,6 +119,19 @@ class Book:
                     self.holdData[i].append( date + ':\t' + comment )
                     self.holdData[i].append( '--' )
 
+    def mdfData( self, line ):
+        # Modify nth line
+        self.checkEx()  # Check existence of the file
+        try:
+            line = int( line )
+            for i in range( len( self.holdData ) ):
+                if self.nameFile in self.holdData[i]:
+                    print( TermColors.WARN + TermColors.BOLD + \
+                           self.holdData[i][line+1] + TermColors.ENDL )
+                    newLine = input( 'Enter your modified line: ' )
+                    self.holdData[i][line+1] = newLine
+        except ValueError:
+            raise ValueError( 'ERROR: Line must be a number.' )
 
     def elmData( self, line ):
         # Eliminate data to a group depending of type of argument
@@ -181,6 +197,10 @@ if __name__ == '__main__':
                     book.appData( getOptions().append, date )
                 else:
                     book.appData( getOptions().append )
+
+            # Modify the line of a comment
+            if getOptions().modify is not None:
+                book.mdfData( getOptions().modify )
 
             if getOptions().delete is not None:
                 book.elmData( getOptions().delete )
