@@ -1,7 +1,7 @@
 #!/bin/python3
 
 import argparse
-import sys
+import sys, os
 from datetime import datetime
 
 def getOptions( args = sys.argv[1:] ):
@@ -15,6 +15,7 @@ def getOptions( args = sys.argv[1:] ):
     msgRem = 'Remove all the contents related to a file'
     msgAll = 'Show all the files registered'
     msgDat = 'Add date of creation at the beginning of the file'
+    msgGlo = 'Use the global version of book instead of local'
 
     parser.add_argument( "-i", "--input", help = msgInp )
     parser.add_argument( "-A", "--add", help = msgAdd )
@@ -24,10 +25,12 @@ def getOptions( args = sys.argv[1:] ):
     parser.add_argument( "-r", "--remove", help = msgRem, action = 'store_true')
     parser.add_argument( "-S", "--show_all", help = msgAll, action = 'store_true' )
     parser.add_argument( "-t", "--time", help = msgDat, action = 'store_true' )
+    parser.add_argument( "-g", "--glob_file", help = msgDat, action = 'store_true' )
 
     parser.set_defaults( remove =  False )
     parser.set_defaults( show_all = False )
     parser.set_defaults( time = False )
+    parser.set_defaults( glob_file = False )
 
     options = parser.parse_args( args )
     return options
@@ -70,7 +73,7 @@ class Book:
             if self.nameFile in group:
                 auxCounter += 1
         if auxCounter == 0:
-            raise ValueError( 'ERROR: The file does not exist in .book' )
+            raise ValueError( 'ERROR: The file does not exist in book' )
         else:
             pass
 
@@ -165,9 +168,16 @@ class Book:
                     fbuf.write( elem + '\n' )
 
 if __name__ == '__main__':
+    
+    if getOptions().glob_file:
+        DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
+        # File to save the data
+        if not os.path.exists( DOT_CACHE ):
+            os.makedirs( DOT_CACHE )
 
-    # File to save the data
-    fileToSave = '.book'
+        fileToSave = '{}/.book'.format( DOT_CACHE )
+    else:
+        fileToSave = '.book'
 
     if getOptions().show_all:
         book = Book( fileToSave )
