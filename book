@@ -165,22 +165,30 @@ class Book:
                     'less or equal than the amount of contents in chapter' )
 
     def elmData( self, line ):
-        # Eliminate data to a group depending of type of argument
-        self.checkEx()    # Check existence of the file
-        try:
-            line = int( line )
-            for i in range( len( self.holdData ) ):
-                if self.nameFile in self.holdData[i]:
-                    self.holdData[i].pop( line + 1 )
-        except ValueError:
-            for i in range( len( self.holdData ) ):
-                if self.nameFile in self.holdData[i]:
-                    auxHold = []
-                    for stat in self.holdData[i]:
-                        if line not in stat:
-                            auxHold.append( stat )
-                    self.holdData[i] = auxHold
-                    auxHold = []    # Just in case there are more matches
+        """
+        Eliminate content of a chapter depending of type of argument. If the 
+        argument is a string, then we eliminate all contents that contain
+        that string in a chapter. If the argument is an integer, then we 
+        eliminate the line corresponding to that integer'
+        """
+
+        self.__checkEx()    # Check existence of the chapter
+        assert( isinstance( line, int ) or isinstance( line, str ) )
+
+        if isinstance( line, int ): # Delete the nth content of chapter
+            del self.book_contents[self.chapter][line]
+        else: # Delete contents that contain that string
+            hold_list = [ ( index, match ) for index, match in \
+                          enumerate( self.book_contents[self.chapter] ) \
+                          if line in match ]
+            if hold_list is not None:
+                print( TermColors.RED + 'These are the matched lines' )
+                for match in hold_list:
+                    print( match[1] )
+                checkDelete = int( 
+                        raw_input( 'Are you sure you want to delete them [Y/n]: ')
+
+                
 
     def delFile( self ):
         # Eliminate the data corresponding to a file
@@ -193,10 +201,11 @@ if __name__ == '__main__':
     
     fileToSave = '.book'
     book = Book( fileToSave, 'TRIAL' )
-    book.finData()
+    # book.finData()
     book.shwData()
-    book.mdfData( 1 )
-    book.flsData()
+    # book.mdfData( 1 )
+    # book.flsData()
+    book.elmData( 'comentario' )
 
     # if getOptions().glob_file:
     #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
