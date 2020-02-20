@@ -45,26 +45,42 @@ class TermColors:
 class Book:
 
     def __init__( self, fileToSave, nameFile = 'NULL' ):
-
-        self.holdData = []
+        
         self.fileToSave = fileToSave
         self.nameFile = nameFile
-
-        try:                # In case the file is already created
+        self.holdData = {}
+       
+        try:    # If the file has been created
             with open( fileToSave ) as fbuf:
                 contents = fbuf.readlines()
                 contents = [ x.strip() for x in contents ]
-                # Hold the data into holdData
                 auxHold = []
-                for line in contents:
+                for index, line in enumerate( contents ):
                     auxHold.append( line )
                     if line == '--':
-                        self.holdData.append( auxHold )
+                        self.holdData[auxHold[0]] = auxHold[1:-1]
                         auxHold = []
-        except IOError:     # In case the file does not exist
+        except IOError: # If the file has not been created
+            assert( nameFile != 'NULL' )
             with open( fileToSave, 'w' ) as fbuf:
-                fbuf.write( '%s\n' %( nameFile ) )
+                fbuf.write( '{}\n'.format( nameFile ) )
                 fbuf.write( '--' )
+
+        # try:                # In case the file is already created
+        #     with open( fileToSave ) as fbuf:
+        #         contents = fbuf.readlines()
+        #         contents = [ x.strip() for x in contents ]
+        #         # Hold the data into holdData
+        #         auxHold = []
+        #         for line in contents:
+        #             auxHold.append( line )
+        #             if line == '--':
+        #                 self.holdData.append( auxHold )
+        #                 auxHold = []
+        # except IOError:     # In case the file does not exist
+        #     with open( fileToSave, 'w' ) as fbuf:
+        #         fbuf.write( '%s\n' %( nameFile ) )
+        #         fbuf.write( '--' )
 
     def checkEx( self ):
         # Error raised in case the file does not exist in fileName
@@ -169,64 +185,66 @@ class Book:
 
 if __name__ == '__main__':
     
-    if getOptions().glob_file:
-        DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
-        # File to save the data
-        if not os.path.exists( DOT_CACHE ):
-            os.makedirs( DOT_CACHE )
+    fileToSave = '.book'
+    book = Book( fileToSave, 'TRIAL' )
+    # if getOptions().glob_file:
+    #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
+    #     # File to save the data
+    #     if not os.path.exists( DOT_CACHE ):
+    #         os.makedirs( DOT_CACHE )
 
-        fileToSave = '{}/.book'.format( DOT_CACHE )
-    else:
-        fileToSave = '.book'
+    #     fileToSave = '{}/.book'.format( DOT_CACHE )
+    # else:
+    #     fileToSave = '.book'
 
-    if getOptions().show_all:
-        book = Book( fileToSave )
-        book.shwData()
-    else:
+    # if getOptions().show_all:
+    #     book = Book( fileToSave )
+    #     book.shwData()
+    # else:
 
-        # Add a file if it does not exist
-        if getOptions().add is not None:
-            nameFile = getOptions().add
-            book = Book( fileToSave, nameFile )
-            book.addFile()
+    #     # Add a file if it does not exist
+    #     if getOptions().add is not None:
+    #         nameFile = getOptions().add
+    #         book = Book( fileToSave, nameFile )
+    #         book.addFile()
 
-        else:
-            # Generate the file name to be used
-            if getOptions().input is not None:
-                nameFile = getOptions().input
-            else:
-                nameFile = input( "Enter name of file: " )
+    #     else:
+    #         # Generate the file name to be used
+    #         if getOptions().input is not None:
+    #             nameFile = getOptions().input
+    #         else:
+    #             nameFile = input( "Enter name of file: " )
 
-            # Create a Book object that will manage the IO
-            book = Book( fileToSave, nameFile )
+    #         # Create a Book object that will manage the IO
+    #         book = Book( fileToSave, nameFile )
 
-            # Append something to the file
-            if getOptions().append is not None:
-                if getOptions().time:
-                    date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
-                    book.appData( getOptions().append, date )
-                else:
-                    book.appData( getOptions().append )
+    #         # Append something to the file
+    #         if getOptions().append is not None:
+    #             if getOptions().time:
+    #                 date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
+    #                 book.appData( getOptions().append, date )
+    #             else:
+    #                 book.appData( getOptions().append )
 
-            # Modify the line of a comment
-            if getOptions().modify is not None:
-                book.mdfData( getOptions().modify )
+    #         # Modify the line of a comment
+    #         if getOptions().modify is not None:
+    #             book.mdfData( getOptions().modify )
 
-            if getOptions().delete is not None:
-                book.elmData( getOptions().delete )
+    #         if getOptions().delete is not None:
+    #             book.elmData( getOptions().delete )
 
 
-            if getOptions().show_all:
-                book.shwData()
+    #         if getOptions().show_all:
+    #             book.shwData()
 
-            # Show the data contained in the file
-            book.finData()
+    #         # Show the data contained in the file
+    #         book.finData()
 
-            if getOptions().remove:
-                book.delFile()
+    #         if getOptions().remove:
+    #             book.delFile()
 
-        # Flush everything out
-        book.flsData()
+    #     # Flush everything out
+    #     book.flsData()
 
 
 
