@@ -2,7 +2,7 @@
 
 import argparse
 import sys, os
-from datetime import datetime
+from time import gmtime, strftime
 
 def getOptions( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
@@ -138,13 +138,16 @@ class Book:
         except AssertionError:
             raise AssertionError( 'ERROR: The chapter is currently inside book' )
 
-    def appData( self, comment, position = None ):
+    def appData( self, comment, position = None, print_date = False ):
         """
         Append content to the nth position of the chapter
         """
         if position is None:
             position = len( self.book_contents[self.chapter] )
         self.__checkEx()    # Check existence of chapter
+        if print_date:
+            date = strftime( "%d-%m-%Y", gmtime() )
+            comment = date + ': ' + comment
         self.book_contents[self.chapter].insert( position, comment )
         
     def mdfData( self, position ):
@@ -212,6 +215,8 @@ if __name__ == '__main__':
     
     fileToSave = '.book'
     book = Book( fileToSave, 'TRIAL' )
+    book.appData( 'Add this man', print_date = True )
+    book.flsData()
 
     # book.finData()
     # book.shwData()
