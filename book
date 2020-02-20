@@ -42,115 +42,127 @@ class TermColors:
     ENDL = '\033[0m'
     UNDL = '\033[4m'
 
+SEPARATOR = '--//--'
+
 class Book:
 
-    def __init__( self, fileToSave, nameFile = 'NULL' ):
-        
-        self.fileToSave = fileToSave
-        self.nameFile = nameFile
-        self.holdData = {}
+    def __init__( self, bookf_path, chapter = 'NULL' ):
+        """
+        Constructor of the class. It stores the data inside fileToSave into a 
+        dictionary to be manipulated.
+        Arguments:
+            self ( Book object ):
+            bookf_path ( string ):
+                String containing the path and name of the book file in which we
+                will store the data.
+            chapter ( string ):
+                String containing the chapter inside book we would like to 
+                manipulate.
+        Returns:
+        """
+         
+        self.bookf = bookf_path
+        self.chapter = chapter
+        self.book_contents = {}
        
-        try:    # If the file has been created
-            with open( fileToSave ) as fbuf:
+        try: # If the book file exists
+            with open( self.bookf ) as fbuf:
                 contents = fbuf.readlines()
                 contents = [ x.strip() for x in contents ]
                 auxHold = []
-                for index, line in enumerate( contents ):
+                for line in contents:
                     auxHold.append( line )
-                    if line == '--':
-                        self.holdData[auxHold[0]] = auxHold[1:-1]
+                    if line == SEPARATOR:
+                        self.book_contents[auxHold[0]] = auxHold[1:-1]
                         auxHold = []
-        except IOError: # If the file has not been created
-            assert( nameFile != 'NULL' )
-            with open( fileToSave, 'w' ) as fbuf:
-                fbuf.write( '{}\n'.format( nameFile ) )
-                fbuf.write( '--' )
+        except IOError: # If the book file does not exist
+            assert( self.chapter != 'NULL' )
+            with open( self.bookf, 'w' ) as fbuf:
+                fbuf.write( '{}\n'.format( self.chapter ) )
+                fbuf.write( SEPARATOR )
 
-        # try:                # In case the file is already created
-        #     with open( fileToSave ) as fbuf:
-        #         contents = fbuf.readlines()
-        #         contents = [ x.strip() for x in contents ]
-        #         # Hold the data into holdData
-        #         auxHold = []
-        #         for line in contents:
-        #             auxHold.append( line )
-        #             if line == '--':
-        #                 self.holdData.append( auxHold )
-        #                 auxHold = []
-        # except IOError:     # In case the file does not exist
-        #     with open( fileToSave, 'w' ) as fbuf:
-        #         fbuf.write( '%s\n' %( nameFile ) )
-        #         fbuf.write( '--' )
+    def __checkEx( self ):
+        """
+        Raise an error if the chapter is not found in the book file.
+        """
+        if self.chapter not in self.book_contents:
+            raise ValueError( 'ERROR: Chapter does not exist in book file' )
 
-    def checkEx( self ):
-        # Error raised in case the file does not exist in fileName
-        auxCounter = 0
-        for group in self.holdData:
-            if self.nameFile in group:
-                auxCounter += 1
-        if auxCounter == 0:
-            raise ValueError( 'ERROR: The file does not exist in book' )
-        else:
-            pass
+    def flsData( self ):
+        """ 
+        Method to overwrite the manipulated data of the session inside the
+        book file
+        """
+        with open( self.bookf, 'w' ) as fbuf:
+            for chapter in self.book_contents.keys():
+                fbuf.write( chapter + '\n' )
+                for content in self.book_contents[chapter]:
+                    fbuf.write( content + '\n' )
+                fbuf.write( SEPARATOR + '\n' )
 
     def finData( self ):
+        """
+        Show the contents inside a given chapter.
+        """
         # Find the data to print the content out in the command line
-        self.checkEx()    # Check existence of the file
-        for group in self.holdData:
-            if self.nameFile in group:
-                for elem in group:
-                    print( TermColors.RED + TermColors.BOLD + elem + \
-                           TermColors.ENDL ) \
-                            if elem == group[0] else None
-                    print( TermColors.BOLD + elem + TermColors.ENDL ) \
-                            if elem != '--' and elem != group[0] else None
+        self.__checkEx()    # Check existence of the file
+
+        # Print the chapter name
+        print( TermColors.RED + TermColors.BOLD + self.chapter + TermColors.ENDL )
+
+        # Print the contents of the chapter
+        for index, content in enumerate( self.book_contents[self.chapter] ):
+            if index != len( self.book_contents[self.chapter] ):
+                print( str(index) + ': ' + TermColors.BOLD + content + \
+                       TermColors.ENDL )
 
     def shwData( self ):
-        # Show all the data registered
-        for group in self.holdData:
-            for elem in group:
-                print( TermColors.RED + TermColors.BOLD + elem + \
-                       TermColors.ENDL ) \
-                        if elem == group[0] else None
-                print( TermColors.BOLD + elem + TermColors.ENDL ) \
-                        if elem != '--' and elem != group[0] else None
+        """
+        Iterate through all the chapters in the file to retrieve their contents
+        """
+        # Show all the data registered inside book
+        
+        for chapter in self.book_contents.keys():
+            # Print the chapters
+            self.chapter = chapter
+            self.finData()
 
     def addFile( self ):
-        # Add a new file
+        """ 
+        Add a new file without contents inside.
+        """
         try:
-            self.checkEx()
-        except ValueError:
-            self.holdData.append( [self.nameFile, '--'] )
+            assert( self.chapter not in self.book_contents.keys() )
+            self.book_contents[self.chapter] = [ SEPARATOR ]
+        except AssertionError:
+            raise AssertionError( 'ERROR: The chapter is currently inside book' )
 
-    def appData( self, comment, date = None ):
-        # Append data to the last position in the group
-        self.checkEx()    # Check existence of the file
-        if date is None:
-            for i in range( len( self.holdData ) ):
-                if self.holdData[i][0] == self.nameFile:
-                    self.holdData[i].pop( -1 )
-                    self.holdData[i].append( comment )
-                    self.holdData[i].append( '--' )
-        else:
-            for i in range( len( self.holdData ) ):
-                if self.holdData[i][0] == self.nameFile:
-                    self.holdData[i].pop( -1 )
-                    self.holdData[i].append( date + ':\t' + comment )
-                    self.holdData[i].append( '--' )
+    def appData( self, comment, position = None ):
+        """
+        Append content to the nth position of the chapter
+        """
+        if position is None:
+            position = len( self.book_contents[self.chapter] )
+        self.__checkEx()    # Check existence of chapter
+        self.book_contents[self.chapter].insert( position, comment )
+        
+    def mdfData( self, position ):
+        """
+        Modify the nth comment inside a chapter. Note the contents are indexed
+        using an array from 0 to N -1.
+        """
 
-    def mdfData( self, line ):
-        # Modify nth line
-        self.checkEx()  # Check existence of the file
+        self.__checkEx()  # Check existence of the file
         try:
-            line = int( line )
-            for i in range( len( self.holdData ) ):
-                if self.nameFile in self.holdData[i]:
-                    print( TermColors.WARN + TermColors.BOLD + \
-                           self.holdData[i][line+1] + TermColors.ENDL )
-                    newLine = input( 'Enter your modified line: ' )
-                    self.holdData[i][line+1] = newLine
-        except ValueError:
-            raise ValueError( 'ERROR: Line must be a number.' )
+            assert( isinstance( position, int ) )
+            assert( position <= len( self.book_contents[self.chapter] ) )
+            print( TermColors.WARN + TermColors.BOLD + \
+                   self.book_contents[self.chapter][position] + TermColors.ENDL )
+            new_line = input( 'Enter your modified line: ' )
+            self.book_contents[self.chapter].insert( position, new_line )
+        except AssertionError:
+            raise AssertionError( 'ERROR: Position has to be an integer and ' + 
+                    'less or equal than the amount of contents in chapter' )
 
     def elmData( self, line ):
         # Eliminate data to a group depending of type of argument
@@ -177,16 +189,15 @@ class Book:
             if self.nameFile in self.holdData[i]:
                 self.holdData.pop( i )
 
-    def flsData( self ):
-        with open( self.fileToSave, 'w' ) as fbuf:
-            for group in self.holdData:
-                for elem in group:
-                    fbuf.write( elem + '\n' )
-
 if __name__ == '__main__':
     
     fileToSave = '.book'
     book = Book( fileToSave, 'TRIAL' )
+    book.finData()
+    book.shwData()
+    book.mdfData( 1 )
+    book.flsData()
+
     # if getOptions().glob_file:
     #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
     #     # File to save the data
