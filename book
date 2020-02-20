@@ -63,6 +63,7 @@ class Book:
          
         self.bookf = bookf_path
         self.chapter = chapter
+        print( self.chapter )
         self.book_contents = {}
        
         try: # If the book file exists
@@ -100,19 +101,21 @@ class Book:
                     fbuf.write( content + '\n' )
                 fbuf.write( SEPARATOR + '\n' )
 
-    def finData( self ):
+    def finData( self, aux_chapter = None ):
         """
         Show the contents inside a given chapter.
         """
         # Find the data to print the content out in the command line
-        self.__checkEx()    # Check existence of the file
+        if aux_chapter is None:
+            aux_chapter = self.chapter
+            self.__checkEx()
 
         # Print the chapter name
         print( TermColors.RED + TermColors.BOLD + self.chapter + TermColors.ENDL )
 
         # Print the contents of the chapter
-        for index, content in enumerate( self.book_contents[self.chapter] ):
-            if index != len( self.book_contents[self.chapter] ):
+        for index, content in enumerate( self.book_contents[aux_chapter] ):
+            if index != len( self.book_contents[aux_chapter] ):
                 print( str(index) + ': ' + TermColors.BOLD + content + \
                        TermColors.ENDL )
 
@@ -121,11 +124,9 @@ class Book:
         Iterate through all the chapters in the file to retrieve their contents
         """
         # Show all the data registered inside book
-        
         for chapter in self.book_contents.keys():
             # Print the chapters
-            self.chapter = chapter
-            self.finData()
+            self.finData( chapter )
 
     def addFile( self ):
         """ 
@@ -174,6 +175,7 @@ class Book:
 
         self.__checkEx()    # Check existence of the chapter
         assert( isinstance( line, int ) or isinstance( line, str ) )
+        yes = set( ['yes', 'y', 'ye', ''] )
 
         if isinstance( line, int ): # Delete the nth content of chapter
             del self.book_contents[self.chapter][line]
@@ -182,30 +184,43 @@ class Book:
                           enumerate( self.book_contents[self.chapter] ) \
                           if line in match ]
             if hold_list is not None:
-                print( TermColors.RED + 'These are the matched lines' )
+                print( TermColors.RED + 'These are the matched lines' + \
+                       TermColors.ENDL )
                 for match in hold_list:
-                    print( match[1] )
-                checkDelete = int( 
-                        raw_input( 'Are you sure you want to delete them [Y/n]: ')
-
-                
+                    print( match[0], ': ', match[1] )
+                check_del = input( 'Are you sure you want to delete them [Y/n]: ')
+                check_del = check_del.lower()
+                if check_del in yes:
+                    # Delete the stuff
+                    matches = set( [ match for ( ind, match ) in hold_list ] )
+                    set_chapter = set( self.book_contents[self.chapter] )
+                    self.book_contents[self.chapter] = \
+                            list( set_chapter - matches )
+                else:
+                    print( 'That does not looks like a yes' )
+            else:
+                print( 'There are not matched lines in the current chapter' )
 
     def delFile( self ):
-        # Eliminate the data corresponding to a file
-        self.checkEx()
-        for i in range( len( self.holdData ) ):
-            if self.nameFile in self.holdData[i]:
-                self.holdData.pop( i )
+        """
+        Eliminate all contents inside a chapter, including the chapter itself
+        """
+        self.__checkEx() # Check for existence of chapter
+        del self.book_contents[self.chapter]
 
 if __name__ == '__main__':
     
     fileToSave = '.book'
     book = Book( fileToSave, 'TRIAL' )
+
     # book.finData()
-    book.shwData()
+    # book.shwData()
+    # print( 'Another one' )
     # book.mdfData( 1 )
     # book.flsData()
-    book.elmData( 'comentario' )
+    # book.elmData( 'comentario' )
+    # book.delFile()
+    # book.flsData()
 
     # if getOptions().glob_file:
     #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
