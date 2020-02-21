@@ -7,14 +7,15 @@ from time import gmtime, strftime
 def getOptions( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
 
-    msgInp = 'Input file.'
-    msgAdd = 'File to be added.'
-    msgApp = 'Message to be appended to the file.'
-    msgMod = 'Modify the nth comment of a file.'
-    msgDel = 'Delete the nth comment of a file or the lines containing string.'
-    msgRem = 'Remove all the contents related to a file'
-    msgAll = 'Show all the files registered'
-    msgDat = 'Add date of creation at the beginning of the file'
+    msgInp = 'Chapter to work on.'
+    msgAdd = 'Add a new empty chapter to the file.'
+    msgApp = 'Add a new comment to the current chapter.'
+    msgMod = 'Manipulate the nth comment of a chapter.'
+    msgDel = 'Delete the nth comment of the chapter or all the comments ' + \
+             'containing the string provided'
+    msgRem = 'Remove a chapter from the book.'
+    msgAll = 'Show all the contents inside book file.'
+    msgDat = 'Show the date of creation of the comments.'
     msgGlo = 'Use the global version of book instead of local'
 
     parser.add_argument( "-i", "--input", help = msgInp )
@@ -63,19 +64,26 @@ class Book:
          
         self.bookf = bookf_path
         self.chapter = chapter
-        print( self.chapter )
+
         self.book_contents = {}
+        self.book_dates = {}
        
         try: # If the book file exists
             with open( self.bookf ) as fbuf:
                 contents = fbuf.readlines()
                 contents = [ x.strip() for x in contents ]
-                auxHold = []
+                hold_dates, hold_comments = [], []
                 for line in contents:
-                    auxHold.append( line )
-                    if line == SEPARATOR:
-                        self.book_contents[auxHold[0]] = auxHold[1:-1]
-                        auxHold = []
+                    line = line.split( '#' )
+                    if len( line ) == 2: # Take care of comments
+                        hold_dates.append( line[0] ), hold_comments.append( line[1] )
+                    else: # Take care of Chapter and Separator
+                        hold_comments.append( line[0] )
+                    if line[0] == SEPARATOR:
+                        self.book_contents[hold_comments[0]] = hold_comments[1:-1]
+                        self.book_dates[hold_comments[0]] = hold_dates
+                        hold_dates, hold_comments = [], [] 
+
         except IOError: # If the book file does not exist
             assert( self.chapter != 'NULL' )
             with open( self.bookf, 'w' ) as fbuf:
@@ -97,11 +105,12 @@ class Book:
         with open( self.bookf, 'w' ) as fbuf:
             for chapter in self.book_contents.keys():
                 fbuf.write( chapter + '\n' )
-                for content in self.book_contents[chapter]:
-                    fbuf.write( content + '\n' )
+                for index, content in enumerate( self.book_contents[chapter] ):
+                    fbuf.write( self.book_dates[chapter][index] + '#' + \
+                                content + '\n' )
                 fbuf.write( SEPARATOR + '\n' )
 
-    def finData( self, aux_chapter = None ):
+    def finData( self, aux_chapter = None, print_date = False ):
         """
         Show the contents inside a given chapter.
         """
@@ -109,24 +118,25 @@ class Book:
         if aux_chapter is None:
             aux_chapter = self.chapter
             self.__checkEx()
-
+        
         # Print the chapter name
-        print( TermColors.RED + TermColors.BOLD + self.chapter + TermColors.ENDL )
+        print( TermColors.RED + TermColors.BOLD + aux_chapter + TermColors.ENDL )
 
-        # Print the contents of the chapter
         for index, content in enumerate( self.book_contents[aux_chapter] ):
+            if print_date:
+                content = self.book_dates[aux_chapter][index] + ': ' + content
+            # Print the contents of the chapter
             if index != len( self.book_contents[aux_chapter] ):
-                print( str(index) + ': ' + TermColors.BOLD + content + \
-                       TermColors.ENDL )
+                print( TermColors.BOLD + content + TermColors.ENDL )
 
-    def shwData( self ):
+    def shwData( self, print_date = False ):
         """
         Iterate through all the chapters in the file to retrieve their contents
         """
         # Show all the data registered inside book
         for chapter in self.book_contents.keys():
             # Print the chapters
-            self.finData( chapter )
+            self.finData( chapter, print_date )
 
     def addFile( self ):
         """ 
@@ -138,16 +148,16 @@ class Book:
         except AssertionError:
             raise AssertionError( 'ERROR: The chapter is currently inside book' )
 
-    def appData( self, comment, position = None, print_date = False ):
+    def appData( self, comment, position = None ):
         """
-        Append content to the nth position of the chapter
+        Append content to the nth position of the chapter. The date of creation is
+        always appended at the beginning, it is used for filtering.
         """
         if position is None:
             position = len( self.book_contents[self.chapter] )
         self.__checkEx()    # Check existence of chapter
-        if print_date:
-            date = strftime( "%d-%m-%Y", gmtime() )
-            comment = date + ': ' + comment
+        date = strftime( "%d-%m-%Y", gmtime() )
+        comment = date + ': ' + comment
         self.book_contents[self.chapter].insert( position, comment )
         
     def mdfData( self, position ):
@@ -163,7 +173,11 @@ class Book:
             print( TermColors.WARN + TermColors.BOLD + \
                    self.book_contents[self.chapter][position] + TermColors.ENDL )
             new_line = input( 'Enter your modified line: ' )
+            date = strftime( "%d-%m-%Y", gmtime() )
+            del self.book_contents[self.chapter][position]
+            del self.book_dates[self.chapter][position]
             self.book_contents[self.chapter].insert( position, new_line )
+            self.book_dates[self.chapter].insert( position, date )
         except AssertionError:
             raise AssertionError( 'ERROR: Position has to be an integer and ' + 
                     'less or equal than the amount of contents in chapter' )
@@ -215,13 +229,18 @@ if __name__ == '__main__':
     
     fileToSave = '.book'
     book = Book( fileToSave, 'TRIAL' )
-    book.appData( 'Add this man', print_date = True )
-    book.flsData()
+    book.mdfData( 0 ) 
+    book.shwData( print_date = True )
+
+    # print( book.book_contents )
+    # book.mdfData( 1 )
+    # book.shwData( print_date = True )
+    # book.flsData()
+    
 
     # book.finData()
     # book.shwData()
     # print( 'Another one' )
-    # book.mdfData( 1 )
     # book.flsData()
     # book.elmData( 'comentario' )
     # book.delFile()
