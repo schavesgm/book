@@ -3,6 +3,9 @@
 import argparse
 import sys, os
 from time import gmtime, strftime
+import regex as re
+
+SEPARATOR = '--//--'
 
 def getOptions( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
@@ -43,7 +46,20 @@ class TermColors:
     ENDL = '\033[0m'
     UNDL = '\033[4m'
 
-SEPARATOR = '--//--'
+months = {
+        '01': [ 'jan', 'january', '01', '1', 'ene', 'enero' ],
+        '02': [ 'feb', 'february', '02', '2', 'febrero' ],
+        '03': [ 'mar', 'march', '03', '3', 'marzo' ],
+        '04': [ 'apr', 'april', '04', '4', 'abr', 'abril' ],
+        '05': [ 'may', '05', '5', 'mayo' ], 
+        '06': [ 'jun', 'june', '06', '6', 'junio' ],
+        '07': [ 'jul', 'july', '07', '7', 'julio' ],
+        '08': [ 'aug', 'august', '08', '8', 'ago', 'agosto' ],
+        '09': [ 'sept', 'september', '09', '9', 'septiembre' ],
+        '10': [ 'oct', 'october', '10', 'septiembre' ],
+        '11': [ 'nov', 'november', '11', 'noviembre' ],
+        '12': [ 'dec', 'december', '12', 'dic', 'diciembre' ]
+    }
 
 class Book:
 
@@ -224,27 +240,68 @@ class Book:
         """
         self.__checkEx() # Check for existence of chapter
         del self.book_contents[self.chapter]
+    
+    def filtData( self, QUERY ):
+        """
+        Function to filter data from a chapter based on a query
+        """
+         
+        check = re.match( "[mydDYM]\\d+(-[mydDYM]\\d+-[mydDYM]\\d+)?", QUERY )
+
+        # Make this better with an ERROR message
+        try:
+            assert ( check is not None )
+        except AssertionError:
+            error = "ERROR: Query has to fulfill the following condition '[dD][0-9]+-[mM][a-zA-Z0-9]+-[yY][0-9]+"
+            raise AssertionError( error )
+
+        search_month = re.search( r'.*[Mm]([a-zA-Z0-9]+)*', QUERY ) 
+        search_year = re.search( r'.*[Yy]([0-9]+)*', QUERY ) 
+        search_day = re.search( r'.*[Dy]([0-9]+)*', QUERY ) 
+        
+        # Initial values of the matches
+        get_month, get_year, get_day = '*', '*', '*'
+
+        # Check for values on the array
+        if search_month is not None:
+            get_month = search_month.group(1)
+            for key, month in months.items():
+                if get_month.lower() in month:
+                    extract_key = str(key)
+            get_month = extract_key 
+
+        if search_year is not None:
+            get_year = search_year.group(1)
+
+        if search_day is not None:
+            get_day = search_day.group(1)
+            if int(get_day) < 10:
+                get_day = '0' + get_day
+
+        # Look for matches inside chapter
+        match_dates = []
+        for index, date in enumerate( self.book_dates[self.chapter] ):
+            if get_day == '*':
+                match = re.match( r'.*-%s-%s*' %( get_month, get_year ), date )
+            else:
+                match = re.match( r'%s-%s-%s*' %( get_day, get_month, get_year ), \
+                                  date )
+            if match is not None:
+                match_dates.append( index )
+
+        print( TermColors.RED + TermColors.BOLD + self.chapter + TermColors.ENDL )
+        for index in match_dates:
+            content = self.book_dates[self.chapter][int(index)] + ': ' + \
+                      self.book_contents[self.chapter][int(index)]
+            print( TermColors.BOLD + content + TermColors.ENDL )
 
 if __name__ == '__main__':
     
     fileToSave = '.book'
     book = Book( fileToSave, 'TRIAL' )
-    book.mdfData( 0 ) 
-    book.shwData( print_date = True )
-
-    # print( book.book_contents )
-    # book.mdfData( 1 )
+    # book.mdfData( 0 ) 
     # book.shwData( print_date = True )
-    # book.flsData()
-    
-
-    # book.finData()
-    # book.shwData()
-    # print( 'Another one' )
-    # book.flsData()
-    # book.elmData( 'comentario' )
-    # book.delFile()
-    # book.flsData()
+    book.filtData( 'Y2020-M1' )
 
     # if getOptions().glob_file:
     #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
