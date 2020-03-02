@@ -7,34 +7,43 @@ import regex as re
 
 SEPARATOR = '--//--'
 
-def getOptions( args = sys.argv[1:] ):
+def get_flags( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
 
-    msgInp = 'Chapter to work on.'
-    msgAdd = 'Add a new empty chapter to the file.'
-    msgApp = 'Add a new comment to the current chapter.'
-    msgMod = 'Manipulate the nth comment of a chapter.'
-    msgDel = 'Delete the nth comment of the chapter or all the comments ' + \
-             'containing the string provided'
-    msgRem = 'Remove a chapter from the book.'
-    msgAll = 'Show all the contents inside book file.'
-    msgDat = 'Show the date of creation of the comments.'
-    msgGlo = 'Use the global version of book instead of local'
+    msg_chapter = 'Chapter to work on.'
+    msg_append = '''
+        Add a new comment to the current chapter in the nth position. The first
+        value is indexed as zero.
+        '''
+    msg_modify = '''
+        Modify the nth comment inside a chapter. The first value is indexed as
+        zero
+    '''
+    # msgAdd = 'Add a new empty chapter to the file.'
+    # msgApp = 'Add a new comment to the current chapter.'
+    # msgMod = 'Manipulate the nth comment of a chapter.'
+    # msgDel = 'Delete the nth comment of the chapter or all the comments ' + \
+    #          'containing the string provided'
+    # msgRem = 'Remove a chapter from the book.'
+    # msgAll = 'Show all the contents inside book file.'
+    # msgDat = 'Show the date of creation of the comments.'
 
-    parser.add_argument( "-i", "--input", help = msgInp )
-    parser.add_argument( "-A", "--add", help = msgAdd )
-    parser.add_argument( "-a", "--append", help = msgApp )
-    parser.add_argument( "-m", "--modify", help = msgMod )
-    parser.add_argument( "-d", "--delete", help = msgDel )
-    parser.add_argument( "-r", "--remove", help = msgRem, action = 'store_true')
-    parser.add_argument( "-S", "--show_all", help = msgAll, action = 'store_true' )
-    parser.add_argument( "-t", "--time", help = msgDat, action = 'store_true' )
-    parser.add_argument( "-g", "--glob_file", help = msgDat, action = 'store_true' )
+    parser.add_argument( "-C", "--chapter", help = msg_chapter )
+    parser.add_argument( "-a", "--append", help = msg_append, nargs = '+' )
+    parser.add_argument( "-m", "--modify", help = msg_modify )
+                         
 
-    parser.set_defaults( remove =  False )
-    parser.set_defaults( show_all = False )
-    parser.set_defaults( time = False )
-    parser.set_defaults( glob_file = False )
+    # parser.add_argument( "-A", "--add", help = msgAdd )
+    # parser.add_argument( "-a", "--append", help = msgApp )
+    # parser.add_argument( "-m", "--modify", help = msgMod )
+    # parser.add_argument( "-d", "--delete", help = msgDel )
+    # parser.add_argument( "-r", "--remove", help = msgRem, action = 'store_true')
+    # parser.add_argument( "-S", "--show_all", help = msgAll, action = 'store_true' )
+    # parser.add_argument( "-t", "--time", help = msgDat, action = 'store_true' )
+
+    parser.set_defaults( chapter =  False )
+    # parser.set_defaults( show_all = False )
+    # parser.set_defaults( time = False )
 
     options = parser.parse_args( args )
     return options
@@ -106,14 +115,14 @@ class Book:
                 fbuf.write( '{}\n'.format( self.chapter ) )
                 fbuf.write( SEPARATOR )
 
-    def __checkEx( self ):
+    def check_existence( self ):
         """
         Raise an error if the chapter is not found in the book file.
         """
         if self.chapter not in self.book_contents:
-            raise ValueError( 'ERROR: Chapter does not exist in book file' )
+            raise ValueError( 'ERROR: Chapter does not exist in book file.' )
 
-    def flsData( self ):
+    def save_chapter( self ):
         """ 
         Method to overwrite the manipulated data of the session inside the
         book file
@@ -126,14 +135,14 @@ class Book:
                                 content + '\n' )
                 fbuf.write( SEPARATOR + '\n' )
 
-    def finData( self, aux_chapter = None, print_date = False ):
+    def show_chapter( self, aux_chapter = None, print_date = False ):
         """
         Show the contents inside a given chapter.
         """
         # Find the data to print the content out in the command line
         if aux_chapter is None:
             aux_chapter = self.chapter
-            self.__checkEx()
+            self.check_existence()
         
         # Print the chapter name
         print( TermColors.RED + TermColors.BOLD + aux_chapter + TermColors.ENDL )
@@ -145,44 +154,53 @@ class Book:
             if index != len( self.book_contents[aux_chapter] ):
                 print( TermColors.BOLD + content + TermColors.ENDL )
 
-    def shwData( self, print_date = False ):
+    def show_book( self, print_date = False ):
         """
         Iterate through all the chapters in the file to retrieve their contents
         """
         # Show all the data registered inside book
         for chapter in self.book_contents.keys():
             # Print the chapters
-            self.finData( chapter, print_date )
+            self.show_chapter( chapter, print_date )
 
-    def addFile( self ):
+    def add_chapter( self ):
         """ 
-        Add a new file without contents inside.
+        Add a new chapter in the book file without contents inside.
         """
         try:
             assert( self.chapter not in self.book_contents.keys() )
             self.book_contents[self.chapter] = [ SEPARATOR ]
         except AssertionError:
-            raise AssertionError( 'ERROR: The chapter is currently inside book' )
+            raise AssertionError( 'ERROR: The chapter is currently inside book.' )
 
-    def appData( self, comment, position = None ):
+    def append_comment( self, comment, position = None ):
         """
         Append content to the nth position of the chapter. The date of creation is
         always appended at the beginning, it is used for filtering.
         """
+
         if position is None:
             position = len( self.book_contents[self.chapter] )
-        self.__checkEx()    # Check existence of chapter
+        elif position > len( self.book_contents[self.chapter] ):
+            raise ValueError( 'ERROR: Given position is greater than the number ' +
+                              'of currents comments in the file.' )
+
+        self.check_existence()    # Check existence of chapter
         date = strftime( "%d-%m-%Y", gmtime() )
-        comment = date + ': ' + comment
         self.book_contents[self.chapter].insert( position, comment )
+        self.book_dates[self.chapter].insert( position, date )
         
-    def mdfData( self, position ):
+    def modify_comment( self, position ):
         """
         Modify the nth comment inside a chapter. Note the contents are indexed
         using an array from 0 to N -1.
         """
 
-        self.__checkEx()  # Check existence of the file
+        if position > len( self.book_contents[self.chapter] ) - 1:
+            raise ValueError( 'ERROR: Given position is greater than the number ' +
+                              'of currents comments in the file.' )
+
+        self.check_existence()  # Check existence of the file
         try:
             assert( isinstance( position, int ) )
             assert( position <= len( self.book_contents[self.chapter] ) )
@@ -196,9 +214,9 @@ class Book:
             self.book_dates[self.chapter].insert( position, date )
         except AssertionError:
             raise AssertionError( 'ERROR: Position has to be an integer and ' + 
-                    'less or equal than the amount of contents in chapter' )
+                    'less or equal than the amount of contents in chapter.' )
 
-    def elmData( self, line ):
+    def eliminate_comment( self, line ):
         """
         Eliminate content of a chapter depending of type of argument. If the 
         argument is a string, then we eliminate all contents that contain
@@ -206,7 +224,7 @@ class Book:
         eliminate the line corresponding to that integer'
         """
 
-        self.__checkEx()    # Check existence of the chapter
+        self.check_existence()    # Check existence of the chapter
         assert( isinstance( line, int ) or isinstance( line, str ) )
         yes = set( ['yes', 'y', 'ye', ''] )
 
@@ -234,14 +252,14 @@ class Book:
             else:
                 print( 'There are not matched lines in the current chapter' )
 
-    def delFile( self ):
+    def delete_comments( self ):
         """
         Eliminate all contents inside a chapter, including the chapter itself
         """
-        self.__checkEx() # Check for existence of chapter
+        self.check_existence() # Check for existence of chapter
         del self.book_contents[self.chapter]
     
-    def filtData( self, QUERY ):
+    def filter_comments( self, QUERY ):
         """
         Function to filter data from a chapter based on a query
         """
@@ -252,7 +270,8 @@ class Book:
         try:
             assert ( check is not None )
         except AssertionError:
-            error = "ERROR: Query has to fulfill the following condition '[dD][0-9]+-[mM][a-zA-Z0-9]+-[yY][0-9]+"
+            error = "ERROR: Query has to fulfill the following condition " + \
+            "'[dD][0-9]+-[mM][a-zA-Z0-9]+-[yY][0-9]+."
             raise AssertionError( error )
 
         search_month = re.search( r'.*[Mm]([a-zA-Z0-9]+)*', QUERY ) 
@@ -297,11 +316,62 @@ class Book:
 
 if __name__ == '__main__':
     
-    fileToSave = '.book'
-    book = Book( fileToSave, 'TRIAL' )
-    # book.mdfData( 0 ) 
-    # book.shwData( print_date = True )
-    book.filtData( 'Y2020-M1' )
+    # fileToSave = '.book'
+    # book = Book( fileToSave, 'TRIAL' )
+    # book.append_comment( 0 ) 
+    # book.show_book( print_date = True )
+    #book.filter_comments( 'Y2020-M1' )
+
+    # DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
+    # if not os.path.exists( DOT_CACHE ):
+    #     os.makedirs( DOT_CACHE )
+
+    # Name and location of the book file
+    # book_file = '{}/.book'.format( DOT_CACHE )
+    book_file = '.book'
+
+    # Show all the data
+    
+    # Define the chapter you are working on or show all data inside book
+    if get_flags().chapter:
+        # Chapter we are working on right now
+        chapter = get_flags().chapter
+        
+        book = Book( book_file, chapter )
+
+        # Add new chapter in book file if it does not exist
+        try:
+            book.check_existence()
+        except ValueError:
+            book.add_chapter()
+
+        # Append a comment if defined
+        if get_flags().append:
+            # If only one argument is provided, then append to last line
+            if len( get_flags().append ) == 1:
+                book.append_comment( get_flags().append[0] )
+            elif len( get_flags().append ) == 2:
+                for value in get_flags().append:
+                    try:
+                        position = int( value )
+                    except ValueError:
+                        comment = value
+                book.append_comment( comment, position )
+
+        if get_flags().modify:
+            try:
+                position = int( get_flags().modify )
+                book.modify_comment( position )
+            except ValueError:
+                raise ValueError( 'ERROR: Only numeric values are allowed' )
+
+            
+
+        book.show_book()
+
+    else:
+        book = Book( book_file )
+        book.show_book()
 
     # if getOptions().glob_file:
     #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
@@ -315,14 +385,14 @@ if __name__ == '__main__':
 
     # if getOptions().show_all:
     #     book = Book( fileToSave )
-    #     book.shwData()
+    #     book.show_book()
     # else:
 
     #     # Add a file if it does not exist
     #     if getOptions().add is not None:
     #         nameFile = getOptions().add
     #         book = Book( fileToSave, nameFile )
-    #         book.addFile()
+    #         book.add_chapter()
 
     #     else:
     #         # Generate the file name to be used
@@ -338,29 +408,29 @@ if __name__ == '__main__':
     #         if getOptions().append is not None:
     #             if getOptions().time:
     #                 date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
-    #                 book.appData( getOptions().append, date )
+    #                 book.append_comment( getOptions().append, date )
     #             else:
-    #                 book.appData( getOptions().append )
+    #                 book.append_comment( getOptions().append )
 
     #         # Modify the line of a comment
     #         if getOptions().modify is not None:
-    #             book.mdfData( getOptions().modify )
+    #             book.append_comment( getOptions().modify )
 
     #         if getOptions().delete is not None:
-    #             book.elmData( getOptions().delete )
+    #             book.eliminate_comment( getOptions().delete )
 
 
     #         if getOptions().show_all:
-    #             book.shwData()
+    #             book.show_book()
 
     #         # Show the data contained in the file
-    #         book.finData()
+    #         book.show_chapter()
 
     #         if getOptions().remove:
-    #             book.delFile()
+    #             book.delete_comments()
 
     #     # Flush everything out
-    #     book.flsData()
+    #     book.save_chapter()
 
 
 
