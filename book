@@ -73,18 +73,18 @@ class TermColors:
     UNDL = '\033[4m'
 
 months = {
-        '01': [ 'jan', 'january', '01', '1', 'ene', 'enero' ],
-        '02': [ 'feb', 'february', '02', '2', 'febrero' ],
-        '03': [ 'mar', 'march', '03', '3', 'marzo' ],
-        '04': [ 'apr', 'april', '04', '4', 'abr', 'abril' ],
-        '05': [ 'may', '05', '5', 'mayo' ], 
-        '06': [ 'jun', 'june', '06', '6', 'junio' ],
-        '07': [ 'jul', 'july', '07', '7', 'julio' ],
-        '08': [ 'aug', 'august', '08', '8', 'ago', 'agosto' ],
-        '09': [ 'sept', 'september', '09', '9', 'septiembre' ],
-        '10': [ 'oct', 'october', '10', 'septiembre' ],
-        '11': [ 'nov', 'november', '11', 'noviembre' ],
-        '12': [ 'dec', 'december', '12', 'dic', 'diciembre' ]
+        '01': [ 'jan', 'january', '01', '1', 'ene', 'enero', 'styczen', 'sty' ],
+        '02': [ 'feb', 'february', '02', '2', 'febrero', 'luty', 'lut' ],
+        '03': [ 'mar', 'march', '03', '3', 'marzo', 'marzec' ],
+        '04': [ 'apr', 'april', '04', '4', 'abr', 'abril', 'kwiecien', 'kwi' ],
+        '05': [ 'may', '05', '5', 'mayo', 'maj' ], 
+        '06': [ 'jun', 'june', '06', '6', 'junio', 'czerwiec', 'cze' ],
+        '07': [ 'jul', 'july', '07', '7', 'julio', 'lipiec', 'lip' ],
+        '08': [ 'aug', 'august', '08', '8', 'ago', 'agosto', 'sierpien', 'sie'],
+        '09': [ 'sept', 'september', '09', '9', 'septiembre', 'wrzesien', 'wrz' ],
+        '10': [ 'oct', 'october', '10', 'octubre', 'pazdziernik', 'paz' ],
+        '11': [ 'nov', 'november', '11', 'noviembre', 'listopad', 'lis' ],
+        '12': [ 'dec', 'december', '12', 'dic', 'diciembre', 'grudzien', 'gru' ]
     }
 
 class Book:
@@ -134,6 +134,10 @@ class Book:
 
         # Sort the data by time 
         for chapter in self.book_dates:
+            # In case the chapter is empty
+            if self.book_dates[chapter] == []:
+                continue
+
             aux_hold = []
             for index, date in enumerate( self.book_dates[chapter] ):
                 aux_hold.append( [ date, self.book_contents[chapter][index] ] )
@@ -146,11 +150,9 @@ class Book:
             aux_hold = array( aux_hold, dtype = str )
 
             # Set back the data
-            self.book_dates[chapter] = aux_hold[:,0]
-            self.book_contents[chapter] = aux_hold[:,1]
+            self.book_dates[chapter] = list( aux_hold[:,0] )
+            self.book_contents[chapter] = list( aux_hold[:,1] )
 
-
-        
     def check_existence( self ):
         """
         Raise an error if the chapter is not found in the book file.
@@ -163,12 +165,16 @@ class Book:
         Method to overwrite the manipulated data of the session inside the
         book file
         """
+
         with open( self.bookf, 'w' ) as fbuf:
             for chapter in self.book_contents.keys():
                 fbuf.write( chapter + '\n' )
                 for index, content in enumerate( self.book_contents[chapter] ):
-                    fbuf.write( self.book_dates[chapter][index] + '#' + \
-                                content + '\n' )
+                    if content == SEPARATOR:
+                        pass
+                    else:
+                        fbuf.write( self.book_dates[chapter][index] + '#' + \
+                                    content + '\n' )
                 fbuf.write( SEPARATOR + '\n' )
 
     def show_chapter( self, aux_chapter = None, print_date = False ):
@@ -308,19 +314,20 @@ class Book:
         Function to filter data from a chapter based on a query
         """
          
-        check = re.match( "[mydDYM]\\d+(-[mydDYM]\\d+-[mydDYM]\\d+)?", QUERY )
+        # check = re.match( "[mydDYM]\\d+(-[mydDYM]\\d+-[mydDYM]\\d+)?", QUERY )
+        check = re.match( "[DYM]\\d+(-[DYM]\\d+-[DYM]\\d+)?", QUERY )
 
         # Make this better with an ERROR message
         try:
             assert ( check is not None )
         except AssertionError:
             error = "ERROR: Query has to fulfill the following condition " + \
-            "'[dD][0-9]+-[mM][a-zA-Z0-9]+-[yY][0-9]+."
+            "'[D][0-9]+-[M][a-z0-9]+-[Y][0-9]+."
             raise AssertionError( error )
 
-        search_month = re.search( r'.*[Mm]([a-zA-Z0-9]+)*', QUERY ) 
-        search_year = re.search( r'.*[Yy]([0-9]+)*', QUERY ) 
-        search_day = re.search( r'.*[Dy]([0-9]+)*', QUERY ) 
+        search_month = re.search( r'.*[M]([a-z0-9]+)*', QUERY ) 
+        search_year = re.search( r'.*[Y]([0-9]+)*', QUERY ) 
+        search_day = re.search( r'.*[D]([0-9]+)*', QUERY ) 
         
         # Initial values of the matches
         get_month, get_year, get_day = '*', '*', '*'
@@ -360,12 +367,6 @@ class Book:
 
 if __name__ == '__main__':
     
-    # fileToSave = '.book'
-    # book = Book( fileToSave, 'TRIAL' )
-    # book.append_comment( 0 ) 
-    # book.show_book( print_date = True )
-    #book.filter_comments( 'Y2020-M1' )
-
     # DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
     # if not os.path.exists( DOT_CACHE ):
     #     os.makedirs( DOT_CACHE )
@@ -373,17 +374,14 @@ if __name__ == '__main__':
     # Name and location of the book file
     # book_file = '{}/.book'.format( DOT_CACHE )
     book_file = '.book'
-    # book = Book( book_file )
-    # print( book.book_contents )
-    # print( book.book_dates )
 
     # Show all the data
     
     # Define the chapter you are working on or show all data inside book
     if get_flags().chapter:
+
         # Chapter we are working on right now
         chapter = get_flags().chapter
-        
         book = Book( book_file, chapter )
 
         # Add new chapter in book file if it does not exist
@@ -434,7 +432,7 @@ if __name__ == '__main__':
             book.filter_comments( get_flags().filter_comment )
         
         # Save all the changes in the book file
-        book.save_chapter()
+        book.save_chapter( )
 
     else:
         book = Book( book_file )
