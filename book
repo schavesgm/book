@@ -3,7 +3,10 @@
 import argparse
 import sys, os
 from time import gmtime, strftime
+from datetime import datetime
 import regex as re
+from numpy import array
+import numpy as np
 
 SEPARATOR = '--//--'
 
@@ -11,39 +14,53 @@ def get_flags( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( description = "Parses commands." )
 
     msg_chapter = 'Chapter to work on.'
-    msg_append = '''
-        Add a new comment to the current chapter in the nth position. The first
-        value is indexed as zero.
-        '''
-    msg_modify = '''
-        Modify the nth comment inside a chapter. The first value is indexed as
-        zero
+    msg_show = '''
+        Show all comments inside the chapter.
     '''
-    # msgAdd = 'Add a new empty chapter to the file.'
-    # msgApp = 'Add a new comment to the current chapter.'
-    # msgMod = 'Manipulate the nth comment of a chapter.'
-    # msgDel = 'Delete the nth comment of the chapter or all the comments ' + \
-    #          'containing the string provided'
-    # msgRem = 'Remove a chapter from the book.'
-    # msgAll = 'Show all the contents inside book file.'
-    # msgDat = 'Show the date of creation of the comments.'
+    msg_show_date = '''
+        Flag to print out the date of last modification of each comment.
+    '''
+    msg_append = '''
+        Add a new comment to the current chapter in the nth position. 
+        The first value is indexed as zero. If position is not provided,
+        then the comment is appended at the end of the chapter.
+    '''
+    msg_modify = '''
+        Modify the nth comment inside a chapter. The first value is 
+        indexed as zero.
+    '''
+    msg_delete = '''
+        Delete the nth comment inside a chapter or the lines containing 
+        the string provided. The first value is indexed as zero.
+    '''
+    msg_remove = '''
+        Remove all comments inside a chapter.
+    '''
+    msg_filter = '''
+        Show comments in file filtered by date using a query. The query
+        can be in the form, 'Y(Year)-M(Month)-D(Day)'. There is not need
+        to add YMD in the same query. Months can be filtered using 
+        English and Spanish acronyms, ('Jan', 'Ene') ...
+    '''
 
     parser.add_argument( "-C", "--chapter", help = msg_chapter )
-    parser.add_argument( "-a", "--append", help = msg_append, nargs = '+' )
-    parser.add_argument( "-m", "--modify", help = msg_modify )
+    parser.add_argument( "-s", "--show_comment", help = msg_show, 
+            action = 'store_true' )
+    parser.add_argument( "-t", "--print_date", help = msg_show_date, \
+            action = 'store_true' )
+    parser.add_argument( "-a", "--append_comment", help = msg_append, \
+            nargs = '+' )
+    parser.add_argument( "-m", "--modify_comment", help = msg_modify )
+    parser.add_argument( "-d", "--delete_comment", help = msg_delete )
+    parser.add_argument( "-r", "--remove_comment", help = msg_remove, \
+            action = 'store_true' )
+    parser.add_argument( "-f", "--filter_comment", help = msg_filter )
                          
 
-    # parser.add_argument( "-A", "--add", help = msgAdd )
-    # parser.add_argument( "-a", "--append", help = msgApp )
-    # parser.add_argument( "-m", "--modify", help = msgMod )
-    # parser.add_argument( "-d", "--delete", help = msgDel )
-    # parser.add_argument( "-r", "--remove", help = msgRem, action = 'store_true')
-    # parser.add_argument( "-S", "--show_all", help = msgAll, action = 'store_true' )
-    # parser.add_argument( "-t", "--time", help = msgDat, action = 'store_true' )
-
     parser.set_defaults( chapter =  False )
-    # parser.set_defaults( show_all = False )
-    # parser.set_defaults( time = False )
+    parser.set_defaults( show_comment =  False )
+    parser.set_defaults( print_date =  False )
+    parser.set_defaults( remove_comment =  False )
 
     options = parser.parse_args( args )
     return options
@@ -115,6 +132,25 @@ class Book:
                 fbuf.write( '{}\n'.format( self.chapter ) )
                 fbuf.write( SEPARATOR )
 
+        # Sort the data by time 
+        for chapter in self.book_dates:
+            aux_hold = []
+            for index, date in enumerate( self.book_dates[chapter] ):
+                aux_hold.append( [ date, self.book_contents[chapter][index] ] )
+
+            # Sort by date
+            aux_hold.sort( \
+                key = lambda row: datetime.strptime( row[0], "%d-%m-%Y" ) )
+
+            # Convert to numpy array to allow faster indexing
+            aux_hold = array( aux_hold, dtype = str )
+
+            # Set back the data
+            self.book_dates[chapter] = aux_hold[:,0]
+            self.book_contents[chapter] = aux_hold[:,1]
+
+
+        
     def check_existence( self ):
         """
         Raise an error if the chapter is not found in the book file.
@@ -197,8 +233,8 @@ class Book:
         """
 
         if position > len( self.book_contents[self.chapter] ) - 1:
-            raise ValueError( 'ERROR: Given position is greater than the number ' +
-                              'of currents comments in the file.' )
+            raise ValueError( 'ERROR: Given position is greater than ' +
+                'the number of currents comments in the file.' )
 
         self.check_existence()  # Check existence of the file
         try:
@@ -229,7 +265,11 @@ class Book:
         yes = set( ['yes', 'y', 'ye', ''] )
 
         if isinstance( line, int ): # Delete the nth content of chapter
+            if position > len( self.book_contents[self.chapter] ) - 1:
+                raise ValueError( 'ERROR: Given position is greater than ' +
+                    'the number of currents comments in the file.' )
             del self.book_contents[self.chapter][line]
+
         else: # Delete contents that contain that string
             hold_list = [ ( index, match ) for index, match in \
                           enumerate( self.book_contents[self.chapter] ) \
@@ -239,10 +279,14 @@ class Book:
                        TermColors.ENDL )
                 for match in hold_list:
                     print( match[0], ': ', match[1] )
-                check_del = input( 'Are you sure you want to delete them [Y/n]: ')
+                check_del = input( 
+                    TermColors.BOLD + TermColors.RED + \
+                    'Are you sure you want to delete them [Y/n]: ' + \
+                    TermColors.ENDL )
+
                 check_del = check_del.lower()
                 if check_del in yes:
-                    # Delete the stuff
+                    # Delete the contents matched
                     matches = set( [ match for ( ind, match ) in hold_list ] )
                     set_chapter = set( self.book_contents[self.chapter] )
                     self.book_contents[self.chapter] = \
@@ -329,6 +373,9 @@ if __name__ == '__main__':
     # Name and location of the book file
     # book_file = '{}/.book'.format( DOT_CACHE )
     book_file = '.book'
+    # book = Book( book_file )
+    # print( book.book_contents )
+    # print( book.book_dates )
 
     # Show all the data
     
@@ -345,92 +392,54 @@ if __name__ == '__main__':
         except ValueError:
             book.add_chapter()
 
+        # Show chapter if defined
+        if get_flags().show_comment:
+            book.show_chapter( print_date = get_flags().print_date )
+
         # Append a comment if defined
-        if get_flags().append:
+        if get_flags().append_comment:
             # If only one argument is provided, then append to last line
-            if len( get_flags().append ) == 1:
-                book.append_comment( get_flags().append[0] )
-            elif len( get_flags().append ) == 2:
-                for value in get_flags().append:
+            if len( get_flags().append_comment ) == 1:
+                book.append_comment( get_flags().append_comment[0] )
+            elif len( get_flags().append_comment ) == 2:
+                for value in get_flags().append_comment:
                     try:
                         position = int( value )
                     except ValueError:
                         comment = value
                 book.append_comment( comment, position )
-
-        if get_flags().modify:
+        
+        # Modify a comment if defined
+        if get_flags().modify_comment:
             try:
-                position = int( get_flags().modify )
+                position = int( get_flags().modify_comment )
                 book.modify_comment( position )
             except ValueError:
                 raise ValueError( 'ERROR: Only numeric values are allowed' )
 
-            
+        # Delete a comment if defined
+        if get_flags().delete_comment:
+            try:
+                position = int( get_flags().delete_comment )
+                book.eliminate_comment( position )
+            except ValueError:
+                book.eliminate_comment( get_flags().delete_comment )
 
-        book.show_book()
+        # Remove all comments inside file if defined
+        if get_flags().remove_comment:
+            book.delete_comments()
+
+        # Filter the comments using a query
+        if get_flags().filter_comment:
+            book.filter_comments( get_flags().filter_comment )
+        
+        # Save all the changes in the book file
+        book.save_chapter()
 
     else:
         book = Book( book_file )
         book.show_book()
 
-    # if getOptions().glob_file:
-    #     DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
-    #     # File to save the data
-    #     if not os.path.exists( DOT_CACHE ):
-    #         os.makedirs( DOT_CACHE )
-
-    #     fileToSave = '{}/.book'.format( DOT_CACHE )
-    # else:
-    #     fileToSave = '.book'
-
-    # if getOptions().show_all:
-    #     book = Book( fileToSave )
-    #     book.show_book()
-    # else:
-
-    #     # Add a file if it does not exist
-    #     if getOptions().add is not None:
-    #         nameFile = getOptions().add
-    #         book = Book( fileToSave, nameFile )
-    #         book.add_chapter()
-
-    #     else:
-    #         # Generate the file name to be used
-    #         if getOptions().input is not None:
-    #             nameFile = getOptions().input
-    #         else:
-    #             nameFile = input( "Enter name of file: " )
-
-    #         # Create a Book object that will manage the IO
-    #         book = Book( fileToSave, nameFile )
-
-    #         # Append something to the file
-    #         if getOptions().append is not None:
-    #             if getOptions().time:
-    #                 date = datetime.now().strftime( '%Y-%m-%d %H:%M' )
-    #                 book.append_comment( getOptions().append, date )
-    #             else:
-    #                 book.append_comment( getOptions().append )
-
-    #         # Modify the line of a comment
-    #         if getOptions().modify is not None:
-    #             book.append_comment( getOptions().modify )
-
-    #         if getOptions().delete is not None:
-    #             book.eliminate_comment( getOptions().delete )
-
-
-    #         if getOptions().show_all:
-    #             book.show_book()
-
-    #         # Show the data contained in the file
-    #         book.show_chapter()
-
-    #         if getOptions().remove:
-    #             book.delete_comments()
-
-    #     # Flush everything out
-    #     book.save_chapter()
 
 
 
