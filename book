@@ -15,6 +15,7 @@ def get_flags( args = sys.argv[1:] ):
     parser = argparse.ArgumentParser( 
             description = "Parses commands." )
 
+    # Create a book file and work locally
     msg_init = '''
         Create a empty .book file in the current directory.
     '''
@@ -23,7 +24,12 @@ def get_flags( args = sys.argv[1:] ):
         the root folder of a project. The root directory can be nested
         up to 10 times.
     '''
-    msg_chapter = 'Chapter to work on.'
+
+    # Manipulate the chapter and its elements
+    msg_chapter = '''
+        Chapter to work on. If the chapter given does not exist, one with
+        the provided name will be created.
+    '''
     msg_show = '''
         Show all comments inside the chapter.
     '''
@@ -47,7 +53,7 @@ def get_flags( args = sys.argv[1:] ):
         zero.
     '''
     msg_remove = '''
-        Remove all comments inside a chapter.
+        Remove all comments inside a chapter, including the chapter itself.
     '''
     msg_filter = '''
         Show comments in file filtered by date using a query. The
