@@ -5,62 +5,89 @@ import sys, os
 from time import gmtime, strftime
 from datetime import datetime
 import regex as re
+
 from numpy import array
 import numpy as np
 
 SEPARATOR = '--//--'
 
 def get_flags( args = sys.argv[1:] ):
-    parser = argparse.ArgumentParser( description = "Parses commands." )
+    parser = argparse.ArgumentParser( 
+            description = "Parses commands." )
 
+    msg_init = '''
+        Create a empty .book file in the current directory.
+    '''
+    msg_local = '''
+        Work in a local .book file. The file can be contained inside
+        the root folder of a project. The root directory can be nested
+        up to 10 times.
+    '''
     msg_chapter = 'Chapter to work on.'
     msg_show = '''
         Show all comments inside the chapter.
     '''
     msg_show_date = '''
-        Flag to print out the date of last modification of each comment.
+        Flag to print out the date of last modification of each
+        comment.
     '''
     msg_append = '''
-        Add a new comment to the current chapter in the nth position. 
-        The first value is indexed as zero. If position is not provided,
-        then the comment is appended at the end of the chapter.
+        Add a new comment to the current chapter in the nth position.
+        The first value is indexed as zero. If position is not
+        provided, then the comment is appended at the end of the
+        chapter.
     '''
     msg_modify = '''
         Modify the nth comment inside a chapter. The first value is 
         indexed as zero.
     '''
     msg_delete = '''
-        Delete the nth comment inside a chapter or the lines containing 
-        the string provided. The first value is indexed as zero.
+        Delete the nth comment inside a chapter or the lines
+        containing the string provided. The first value is indexed as
+        zero.
     '''
     msg_remove = '''
         Remove all comments inside a chapter.
     '''
     msg_filter = '''
-        Show comments in file filtered by date using a query. The query
-        can be in the form, 'Y(Year)-M(Month)-D(Day)'. There is not need
-        to add YMD in the same query. Months can be filtered using 
-        English and Spanish acronyms, ('Jan', 'Ene') ...
+        Show comments in file filtered by date using a query. The
+        query can be in the form, 'Y(Year)-M(Month)-D(Day)'. There is
+        not need to add YMD in the same query. Months can be filtered
+        using English, Spanish and Polish acronyms, ('Jan', 'Ene',
+        'Sty' ) ...
     '''
 
+    # Create a book file in the current directory
+    parser.add_argument( "-i", "--init", \
+        help = msg_init, action = 'store_true' )
+    parser.set_defaults( init = False )
+
+    # Global or local files
+    parser.add_argument( "-l", "--local", \
+        help = msg_local, action = 'store_true' )
+    parser.set_defaults( local = False )
+
+    # Manipulate chapters and their contents
     parser.add_argument( "-C", "--chapter", help = msg_chapter )
     parser.add_argument( "-s", "--show_comment", help = msg_show, 
             action = 'store_true' )
-    parser.add_argument( "-t", "--print_date", help = msg_show_date, \
-            action = 'store_true' )
-    parser.add_argument( "-a", "--append_comment", help = msg_append, \
-            nargs = '+' )
-    parser.add_argument( "-m", "--modify_comment", help = msg_modify )
-    parser.add_argument( "-d", "--delete_comment", help = msg_delete )
-    parser.add_argument( "-r", "--remove_comment", help = msg_remove, \
-            action = 'store_true' )
-    parser.add_argument( "-f", "--filter_comment", help = msg_filter )
+    parser.add_argument( "-t", "--print_date", \
+        help = msg_show_date, action = 'store_true' )
+    parser.add_argument( "-a", "--append_comment", \
+        help = msg_append, nargs = '+' )
+    parser.add_argument( "-m", "--modify_comment", \
+        help = msg_modify )
+    parser.add_argument( "-d", "--delete_comment", \
+        help = msg_delete )
+    parser.add_argument( "-r", "--remove_comment", \
+        help = msg_remove, action = 'store_true' )
+    parser.add_argument( "-f", "--filter_comment", \
+        help = msg_filter )
                          
-
-    parser.set_defaults( chapter =  False )
-    parser.set_defaults( show_comment =  False )
-    parser.set_defaults( print_date =  False )
-    parser.set_defaults( remove_comment =  False )
+    parser.set_defaults( chapter = False )
+    parser.set_defaults( show_comment = False )
+    parser.set_defaults( print_date = False )
+    parser.set_defaults( remove_comment = False )
 
     options = parser.parse_args( args )
     return options
@@ -73,34 +100,42 @@ class TermColors:
     UNDL = '\033[4m'
 
 months = {
-        '01': [ 'jan', 'january', '01', '1', 'ene', 'enero', 'styczen', 'sty' ],
-        '02': [ 'feb', 'february', '02', '2', 'febrero', 'luty', 'lut' ],
+        '01': [ 'jan', 'january', '01', '1', 'ene', 'enero', 'styczen',
+            'sty' ],
+        '02': [ 'feb', 'february', '02', '2', 'febrero', 'luty', 'lut'
+            ],
         '03': [ 'mar', 'march', '03', '3', 'marzo', 'marzec' ],
-        '04': [ 'apr', 'april', '04', '4', 'abr', 'abril', 'kwiecien', 'kwi' ],
+        '04': [ 'apr', 'april', '04', '4', 'abr', 'abril', 'kwiecien',
+            'kwi' ],
         '05': [ 'may', '05', '5', 'mayo', 'maj' ], 
         '06': [ 'jun', 'june', '06', '6', 'junio', 'czerwiec', 'cze' ],
         '07': [ 'jul', 'july', '07', '7', 'julio', 'lipiec', 'lip' ],
-        '08': [ 'aug', 'august', '08', '8', 'ago', 'agosto', 'sierpien', 'sie'],
-        '09': [ 'sept', 'september', '09', '9', 'septiembre', 'wrzesien', 'wrz' ],
-        '10': [ 'oct', 'october', '10', 'octubre', 'pazdziernik', 'paz' ],
-        '11': [ 'nov', 'november', '11', 'noviembre', 'listopad', 'lis' ],
-        '12': [ 'dec', 'december', '12', 'dic', 'diciembre', 'grudzien', 'gru' ]
+        '08': [ 'aug', 'august', '08', '8', 'ago', 'agosto', 'sierpien',
+            'sie'],
+        '09': [ 'sept', 'september', '09', '9', 'septiembre',
+            'wrzesien', 'wrz' ],
+        '10': [ 'oct', 'october', '10', 'octubre', 'pazdziernik', 'paz'
+            ],
+        '11': [ 'nov', 'november', '11', 'noviembre', 'listopad', 'lis'
+            ],
+        '12': [ 'dec', 'december', '12', 'dic', 'diciembre', 'grudzien',
+            'gru' ]
     }
 
 class Book:
 
     def __init__( self, bookf_path, chapter = 'NULL' ):
         """
-        Constructor of the class. It stores the data inside fileToSave into a 
-        dictionary to be manipulated.
+        Constructor of the class. It stores the data inside fileToSave
+        into a dictionary to be manipulated.
         Arguments:
             self ( Book object ):
             bookf_path ( string ):
-                String containing the path and name of the book file in which we
-                will store the data.
+                String containing the path and name of the book file in
+                which we will store the data.
             chapter ( string ):
-                String containing the chapter inside book we would like to 
-                manipulate.
+                String containing the chapter inside book we would like
+                to manipulate.
         Returns:
         """
          
@@ -118,12 +153,15 @@ class Book:
                 for line in contents:
                     line = line.split( '#' )
                     if len( line ) == 2: # Take care of comments
-                        hold_dates.append( line[0] ), hold_comments.append( line[1] )
+                        hold_dates.append( line[0] )
+                        hold_comments.append( line[1] )
                     else: # Take care of Chapter and Separator
                         hold_comments.append( line[0] )
                     if line[0] == SEPARATOR:
-                        self.book_contents[hold_comments[0]] = hold_comments[1:-1]
-                        self.book_dates[hold_comments[0]] = hold_dates
+                        self.book_contents[hold_comments[0]] = \
+                            hold_comments[1:-1]
+                        self.book_dates[hold_comments[0]] = \
+                            hold_dates
                         hold_dates, hold_comments = [], [] 
 
         except IOError: # If the book file does not exist
@@ -140,11 +178,13 @@ class Book:
 
             aux_hold = []
             for index, date in enumerate( self.book_dates[chapter] ):
-                aux_hold.append( [ date, self.book_contents[chapter][index] ] )
+                aux_hold.append( [ date,
+                    self.book_contents[chapter][index] ] )
 
             # Sort by date
             aux_hold.sort( \
-                key = lambda row: datetime.strptime( row[0], "%d-%m-%Y" ) )
+                key = lambda row: datetime.strptime( row[0], 
+                    "%d-%m-%Y" ) )
 
             # Convert to numpy array to allow faster indexing
             aux_hold = array( aux_hold, dtype = str )
@@ -162,19 +202,20 @@ class Book:
 
     def save_chapter( self ):
         """ 
-        Method to overwrite the manipulated data of the session inside the
-        book file
+        Method to overwrite the manipulated data of the session inside
+        the book file
         """
 
         with open( self.bookf, 'w' ) as fbuf:
             for chapter in self.book_contents.keys():
                 fbuf.write( chapter + '\n' )
-                for index, content in enumerate( self.book_contents[chapter] ):
+                for index, content in \
+                    enumerate( self.book_contents[chapter] ):
                     if content == SEPARATOR:
                         pass
                     else:
-                        fbuf.write( self.book_dates[chapter][index] + '#' + \
-                                    content + '\n' )
+                        fbuf.write( self.book_dates[chapter][index] +
+                            '#' + content + '\n' )
                 fbuf.write( SEPARATOR + '\n' )
 
     def show_chapter( self, aux_chapter = None, print_date = False ):
@@ -187,18 +228,22 @@ class Book:
             self.check_existence()
         
         # Print the chapter name
-        print( TermColors.RED + TermColors.BOLD + aux_chapter + TermColors.ENDL )
+        print( TermColors.RED + TermColors.BOLD + \
+                aux_chapter + TermColors.ENDL )
 
-        for index, content in enumerate( self.book_contents[aux_chapter] ):
+        for index, content in \
+            enumerate( self.book_contents[aux_chapter] ):
             if print_date:
-                content = self.book_dates[aux_chapter][index] + ': ' + content
+                content = self.book_dates[aux_chapter][index] + \
+                    ': ' + content
             # Print the contents of the chapter
             if index != len( self.book_contents[aux_chapter] ):
                 print( TermColors.BOLD + content + TermColors.ENDL )
 
     def show_book( self, print_date = False ):
         """
-        Iterate through all the chapters in the file to retrieve their contents
+        Iterate through all the chapters in the file to retrieve their
+        contents.
         """
         # Show all the data registered inside book
         for chapter in self.book_contents.keys():
@@ -213,19 +258,22 @@ class Book:
             assert( self.chapter not in self.book_contents.keys() )
             self.book_contents[self.chapter] = [ SEPARATOR ]
         except AssertionError:
-            raise AssertionError( 'ERROR: The chapter is currently inside book.' )
+            raise AssertionError( 'ERROR: ' + \
+                'The chapter is currently inside book.' )
 
     def append_comment( self, comment, position = None ):
         """
-        Append content to the nth position of the chapter. The date of creation is
-        always appended at the beginning, it is used for filtering.
+        Append content to the nth position of the chapter. The date of
+        creation is always appended at the beginning, it is used for
+        filtering.
         """
 
         if position is None:
             position = len( self.book_contents[self.chapter] )
         elif position > len( self.book_contents[self.chapter] ):
-            raise ValueError( 'ERROR: Given position is greater than the number ' +
-                              'of currents comments in the file.' )
+            raise ValueError( 
+                'ERROR: Given position is greater than the number ' +
+                'of currents comments in the file.' )
 
         self.check_existence()    # Check existence of chapter
         date = strftime( "%d-%m-%Y", gmtime() )
@@ -234,8 +282,8 @@ class Book:
         
     def modify_comment( self, position ):
         """
-        Modify the nth comment inside a chapter. Note the contents are indexed
-        using an array from 0 to N -1.
+        Modify the nth comment inside a chapter. Note the contents are
+        indexed using an array from 0 to N -1.
         """
 
         if position > len( self.book_contents[self.chapter] ) - 1:
@@ -247,7 +295,8 @@ class Book:
             assert( isinstance( position, int ) )
             assert( position <= len( self.book_contents[self.chapter] ) )
             print( TermColors.WARN + TermColors.BOLD + \
-                   self.book_contents[self.chapter][position] + TermColors.ENDL )
+                   self.book_contents[self.chapter][position] + \
+                   TermColors.ENDL )
             new_line = input( 'Enter your modified line: ' )
             date = strftime( "%d-%m-%Y", gmtime() )
             del self.book_contents[self.chapter][position]
@@ -255,15 +304,16 @@ class Book:
             self.book_contents[self.chapter].insert( position, new_line )
             self.book_dates[self.chapter].insert( position, date )
         except AssertionError:
-            raise AssertionError( 'ERROR: Position has to be an integer and ' + 
-                    'less or equal than the amount of contents in chapter.' )
+            raise AssertionError( 'ERROR: ' + \
+                'Position has to be an integer and ' + 
+                'less or equal than the amount of contents in chapter.' )
 
     def eliminate_comment( self, line ):
         """
-        Eliminate content of a chapter depending of type of argument. If the 
-        argument is a string, then we eliminate all contents that contain
-        that string in a chapter. If the argument is an integer, then we 
-        eliminate the line corresponding to that integer'
+        Eliminate content of a chapter depending of type of argument. If
+        the argument is a string, then we eliminate all contents that
+        contain that string in a chapter. If the argument is an integer,
+        then we eliminate the line corresponding to that integer'
         """
 
         self.check_existence()    # Check existence of the chapter
@@ -272,14 +322,15 @@ class Book:
 
         if isinstance( line, int ): # Delete the nth content of chapter
             if position > len( self.book_contents[self.chapter] ) - 1:
-                raise ValueError( 'ERROR: Given position is greater than ' +
+                raise ValueError( 'ERROR: ' + \
+                    'Given position is greater than ' +
                     'the number of currents comments in the file.' )
             del self.book_contents[self.chapter][line]
 
         else: # Delete contents that contain that string
             hold_list = [ ( index, match ) for index, match in \
-                          enumerate( self.book_contents[self.chapter] ) \
-                          if line in match ]
+                enumerate( self.book_contents[self.chapter] ) \
+                if line in match ]
             if hold_list is not None:
                 print( TermColors.RED + 'These are the matched lines' + \
                        TermColors.ENDL )
@@ -293,18 +344,21 @@ class Book:
                 check_del = check_del.lower()
                 if check_del in yes:
                     # Delete the contents matched
-                    matches = set( [ match for ( ind, match ) in hold_list ] )
+                    matches = set( [ match for ( ind, match ) \
+                        in hold_list ] )
                     set_chapter = set( self.book_contents[self.chapter] )
                     self.book_contents[self.chapter] = \
                             list( set_chapter - matches )
                 else:
                     print( 'That does not looks like a yes' )
             else:
-                print( 'There are not matched lines in the current chapter' )
+                print( 'There are not matched lines ' + \
+                    'in the current chapter' )
 
     def delete_comments( self ):
         """
-        Eliminate all contents inside a chapter, including the chapter itself
+        Eliminate all contents inside a chapter, including the chapter
+        itself
         """
         self.check_existence() # Check for existence of chapter
         del self.book_contents[self.chapter]
@@ -314,15 +368,15 @@ class Book:
         Function to filter data from a chapter based on a query
         """
          
-        # check = re.match( "[mydDYM]\\d+(-[mydDYM]\\d+-[mydDYM]\\d+)?", QUERY )
         check = re.match( "[DYM]\\d+(-[DYM]\\d+-[DYM]\\d+)?", QUERY )
 
         # Make this better with an ERROR message
         try:
             assert ( check is not None )
         except AssertionError:
-            error = "ERROR: Query has to fulfill the following condition " + \
-            "'[D][0-9]+-[M][a-z0-9]+-[Y][0-9]+."
+            error = "ERROR: " + \
+                "Query has to fulfill the following condition " + \
+                "'[D][0-9]+-[M][a-z0-9]+-[Y][0-9]+."
             raise AssertionError( error )
 
         search_month = re.search( r'.*[M]([a-z0-9]+)*', QUERY ) 
@@ -352,27 +406,58 @@ class Book:
         match_dates = []
         for index, date in enumerate( self.book_dates[self.chapter] ):
             if get_day == '*':
-                match = re.match( r'.*-%s-%s*' %( get_month, get_year ), date )
+                match = \
+                    re.match( r'.*-%s-%s*' %( get_month, get_year ), \
+                        date )
             else:
-                match = re.match( r'%s-%s-%s*' %( get_day, get_month, get_year ), \
-                                  date )
+                match = \
+                    re.match( r'%s-%s-%s*' %( get_day, get_month, \
+                        get_year ), date )
             if match is not None:
                 match_dates.append( index )
 
-        print( TermColors.RED + TermColors.BOLD + self.chapter + TermColors.ENDL )
+        print( TermColors.RED + TermColors.BOLD + \
+                self.chapter + TermColors.ENDL )
         for index in match_dates:
-            content = self.book_dates[self.chapter][int(index)] + ': ' + \
-                      self.book_contents[self.chapter][int(index)]
+            content = \
+                self.book_dates[self.chapter][int(index)] + ': ' + \
+                self.book_contents[self.chapter][int(index)]
             print( TermColors.BOLD + content + TermColors.ENDL )
 
 if __name__ == '__main__':
-    
-    # DOT_CACHE = '{}/.cache/book'.format( os.environ['HOME'] )
-    # if not os.path.exists( DOT_CACHE ):
-    #     os.makedirs( DOT_CACHE )
 
+    # Create a file if needed
+    if get_flags().init:
+        open( '.book', 'w+' )
+        exit()
+
+    if get_flags().local:
+
+        init_dir = os.getcwd()
+        counter, found = 0, False
+        while counter < 10 and found is False:
+
+            # Get the current directory
+            current_dir = os.getcwd()
+
+            # Look for .book file
+            for file in os.listdir():
+                if file == '.book':
+                    found = True
+                    break
+
+            if found:
+                PATH_BOOK = os.getcwd()
+            else:
+                os.chdir( '../' )
+                counter += 1
+    else:
+        PATH_BOOK = '{}/.cache/book'.format( os.environ['HOME'] ) 
+        if not os.path.exists( PATH_BOOK ):
+            os.makedirs( PATH_BOOK )
+    
     # Name and location of the book file
-    # book_file = '{}/.book'.format( DOT_CACHE )
+    book_file = '{}/.book'.format( PATH_BOOK )
     book_file = '.book'
 
     # Show all the data
@@ -413,7 +498,8 @@ if __name__ == '__main__':
                 position = int( get_flags().modify_comment )
                 book.modify_comment( position )
             except ValueError:
-                raise ValueError( 'ERROR: Only numeric values are allowed' )
+                raise ValueError( 'ERROR: ' + \
+                    'Only numeric values are allowed' )
 
         # Delete a comment if defined
         if get_flags().delete_comment:
@@ -437,7 +523,3 @@ if __name__ == '__main__':
     else:
         book = Book( book_file )
         book.show_book()
-
-
-
-
