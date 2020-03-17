@@ -1,13 +1,13 @@
 #!/bin/python3
 
-import argparse
-import sys, os
-from time import gmtime, strftime
-from datetime import datetime
+# Import complete modules
+import sys, os, argparse
 import regex as re
 
+# Import specific functionalities
+from time import gmtime, strftime
+from datetime import datetime
 from numpy import array
-import numpy as np
 
 SEPARATOR = '--//--'
 
