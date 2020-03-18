@@ -432,6 +432,15 @@ class Book:
 
 if __name__ == '__main__':
 
+    # Create a file if needed
+    if get_flags().init:
+        if get_flags().local:
+            open( '.book', 'w+' )
+        else:
+            PATH_BOOK = '{}/.cache/book'.format( os.environ['HOME'] ) 
+            open( '{}/.book'.format( PATH_BOOK ), 'w+' )
+        exit()
+
     if get_flags().local:
 
         init_dir = os.getcwd()
@@ -446,7 +455,6 @@ if __name__ == '__main__':
                 if file == '.book':
                     found = True
                     break
-
             if found:
                 PATH_BOOK = os.getcwd()
             else:
@@ -457,11 +465,6 @@ if __name__ == '__main__':
         if not os.path.exists( PATH_BOOK ):
             os.makedirs( PATH_BOOK )
     
-    # Create a file if needed
-    if get_flags().init:
-        open( '{}/.book'.format( PATH_BOOK ), 'w+' )
-        exit()
-
     # Name and location of the book file
     book_file = '{}/.book'.format( PATH_BOOK )
     
