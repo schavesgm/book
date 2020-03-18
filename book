@@ -432,11 +432,6 @@ class Book:
 
 if __name__ == '__main__':
 
-    # Create a file if needed
-    if get_flags().init:
-        open( '.book', 'w+' )
-        exit()
-
     if get_flags().local:
 
         init_dir = os.getcwd()
@@ -462,11 +457,13 @@ if __name__ == '__main__':
         if not os.path.exists( PATH_BOOK ):
             os.makedirs( PATH_BOOK )
     
+    # Create a file if needed
+    if get_flags().init:
+        open( '{}/.book'.format( PATH_BOOK ), 'w+' )
+        exit()
+
     # Name and location of the book file
     book_file = '{}/.book'.format( PATH_BOOK )
-    book_file = '.book'
-
-    # Show all the data
     
     # Define the chapter you are working on or show all data inside book
     if get_flags().chapter:
