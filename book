@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/bin/python
 
 # Import complete modules
 import sys, os, argparse
@@ -190,7 +190,8 @@ class Book:
             # Sort by date
             aux_hold.sort( \
                 key = lambda row: datetime.strptime( row[0], 
-                    "%d-%m-%Y" ) )
+                    "%d-%m-%Y" ),
+                reverse = True )
 
             # Convert to numpy array to allow faster indexing
             aux_hold = array( aux_hold, dtype = str )
